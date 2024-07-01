@@ -5,7 +5,7 @@ unit GoComicsAPI;
 interface
 
 uses
-  SysUtils, Classes, fpjson, jsonparser, IdHTTP, IdSSLOpenSSL, IdCompressorZLib;
+  SysUtils, Classes, fpjson, jsonparser, IdHTTP, IdSSLOpenSSL, IdCompressorZLib, IdSSLOpenSSLHeaders;
 
 const
   BASE_URL = 'https://www.gocomics.com';
@@ -44,6 +44,25 @@ implementation
 
 { TGoComics }
 
+function ReadFileToString(const FileName: string): string;
+var
+  FileStream: TFileStream;
+  StringStream: TStringStream;
+begin
+  FileStream := TFileStream.Create(FileName, fmOpenRead or fmShareDenyWrite);
+  try
+    StringStream := TStringStream.Create('');
+    try
+      StringStream.CopyFrom(FileStream, FileStream.Size);
+      Result := StringStream.DataString;
+    finally
+      StringStream.Free;
+    end;
+  finally
+    FileStream.Free;
+  end;
+end;
+
 function TGoComics.GetStartDate: TDateTime;
 begin
   Result := FStartDate;
@@ -60,15 +79,15 @@ var
   Response: TStringStream;
   ComicHTML, ComicImg: string;
 begin
-  URL := Format('%s/%s/%s', [BASE_URL, FEndpoint, FormatDate(ADate)]);
+  URL := Format('https://%s/%s/%s', [BASE_URL, FEndpoint, FormatDate(ADate)]);
   Response := TStringStream.Create;
   try
-    FHTTP.Get(URL, Response);
-    ComicHTML := Response.DataString;
+    //FHTTP.Get(URL, Response);
+    //ComicHTML := Response.DataString;
 
     // Parse HTML to get the image URL (simplified)
     // You need to implement proper HTML parsing here
-    ComicImg := ''; // Extract image URL from ComicHTML
+    ComicImg := 'https://assets.amuniversal.com/a78cb7501469013d5bc5005056a9545d'; // temporarily
     Result := ComicImg;
   finally
     Response.Free;
@@ -84,12 +103,21 @@ function TGoComics.GetJSONData(const URL: string): TJSONObject;
 var
   Response: TStringStream;
 begin
-  Response := TStringStream.Create;
-  try
-    FHTTP.Get(URL, Response);
-    Result := TJSONObject(GetJSON(Response.DataString));
-  finally
-    Response.Free;
+  if Pos('http', URL) = 1 then
+  begin
+    // URL is a web resource, fetch it using HTTP
+    Response := TStringStream.Create('');
+    try
+      FHTTP.Get(URL, Response);
+      Result := TJSONObject(GetJSON(Response.DataString));
+    finally
+      Response.Free;
+    end;
+  end
+  else
+  begin
+    // URL is a local file
+    Result := TJSONObject(GetJSON(ReadFileToString(URL)));
   end;
 end;
 
@@ -102,7 +130,6 @@ end;
 constructor TGoComics.Create(const AEndpoint: string);
 var
   JSONData, EndpointData: TJSONObject;
-  JSONString: string;
 begin
   FEndpoint := AEndpoint;
   FHTTP := TIdHTTP.Create(nil);
@@ -110,8 +137,24 @@ begin
   FHTTP.IOHandler := FSSLHandler;
   FHTTP.HandleRedirects := True;
 
+
+
+  // Load OpenSSL libraries
+  if not IdSSLOpenSSL.LoadOpenSSLLibrary then
+    raise Exception.Create('Could not load OpenSSL libraries');
+
+
+  //IdSSLOpenSSLHeaders.Load;
+
+  // Set SSL options
+  //FSSLHandler.SSLOptions.Method := sslvSSLv3;
+  //FSSLHandler.SSLOptions.Method := sslvTLSv1_1;
+//  FSSLHandler.SSLOptions.SSLVersions := [sslvSSLv3, sslvTLSv1_1, sslvTLSv1_2];
+  FSSLHandler.SSLOptions.Mode := sslmClient;
+
+
   // Load endpoint data from JSON
-  JSONData := GetJSONData('endpoints.json'); // Adjust path as necessary
+  JSONData := GetJSONData('/tmp/endpoints.json'); // Adjust path as necessary
   try
     if JSONData.Find(FEndpoint) <> nil then
     begin
@@ -143,7 +186,8 @@ begin
       [DateToStr(FStartDate), DateToStr(ADate)]);
 
   ImageURL := GetImageUrl(ADate);
-  FilePath := IncludeTrailingPathDelimiter(APath) + FEndpoint + '.png';
+  //FilePath := IncludeTrailingPathDelimiter(APath) + FEndpoint + '.png';
+  FilePath := APath;
   FileStream := TFileStream.Create(FilePath, fmCreate);
   try
     FHTTP.Get(ImageURL, FileStream);
@@ -176,5 +220,11 @@ begin
   end;
 end;
 
-end.
+initialization
 
+
+
+
+
+  //LoadOpenSSLLibrary;
+end.

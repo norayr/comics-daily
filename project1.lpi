@@ -58,9 +58,13 @@
     </Target>
     <SearchPaths>
       <IncludeFiles Value="$(ProjOutDir)"/>
+      <OtherUnitFiles Value="../../laz/components-3.4/Indy/Lib/Protocols;../../laz/components-3.4/Indy/Lib/Core;../../laz/components-3.4/Indy/Lib/Security;../../laz/components-3.4/Indy/Lib/SuperCore;../../laz/components-3.4/Indy/Lib/System;../../laz/components-3.4/Indy/Other/Protocols"/>
       <UnitOutputDirectory Value="lib/$(TargetCPU)-$(TargetOS)"/>
     </SearchPaths>
     <Linking>
+      <Debugging>
+        <DebugInfoType Value="dsDwarf3"/>
+      </Debugging>
       <Options>
         <Win32>
           <GraphicApplication Value="True"/>
