@@ -1,7 +1,9 @@
 unit GoComicsAPI;
 
 {$mode objfpc}{$H+}
+
 interface
+
 uses
   SysUtils, Classes, fpjson, jsonparser, IdHTTP, IdSSLOpenSSL, IdCompressorZLib;
 
@@ -34,7 +36,11 @@ type
     procedure DownloadComic(const ADate: TDateTime; const APath: string);
     procedure ShowComic(const ADate: TDateTime);
     function RandomDate: TDateTime;
+    property StartDate: TDateTime read GetStartDate;
+    property Title: string read GetTitle;
   end;
+
+implementation
 
 { TGoComics }
 
@@ -52,7 +58,6 @@ function TGoComics.GetImageUrl(const ADate: TDateTime): string;
 var
   URL: string;
   Response: TStringStream;
-  JSONData: TJSONObject;
   ComicHTML, ComicImg: string;
 begin
   URL := Format('%s/%s/%s', [BASE_URL, FEndpoint, FormatDate(ADate)]);
@@ -96,7 +101,8 @@ end;
 
 constructor TGoComics.Create(const AEndpoint: string);
 var
-  JSONData: TJSONObject;
+  JSONData, EndpointData: TJSONObject;
+  JSONString: string;
 begin
   FEndpoint := AEndpoint;
   FHTTP := TIdHTTP.Create(nil);
@@ -107,9 +113,13 @@ begin
   // Load endpoint data from JSON
   JSONData := GetJSONData('endpoints.json'); // Adjust path as necessary
   try
-    FTitle := JSONData.Get(FEndpoint, '').Get('title', '');
-    FStartDate := ParseDate(JSONData.Get(FEndpoint, '').Get('start_date', ''));
-    if FTitle = '' then
+    if JSONData.Find(FEndpoint) <> nil then
+    begin
+      EndpointData := JSONData.Objects[FEndpoint];
+      FTitle := EndpointData.Get('title', '');
+      FStartDate := ParseDate(EndpointData.Get('start_date', ''));
+    end
+    else
       raise EInvalidEndpointError.Create('Invalid endpoint');
   finally
     JSONData.Free;
@@ -166,18 +176,5 @@ begin
   end;
 end;
 
-begin
-  try
-    // Example usage
-    with TGoComics.Create('calvinandhobbes') do
-    try
-      DownloadComic(Now, GetCurrentDir);
-    finally
-      Free;
-    end;
-  except
-    on E: Exception do
-      Writeln(E.ClassName, ': ', E.Message);
-  end;
 end.
 
