@@ -18,9 +18,8 @@
         <HasResources Value="True"/>
         <ResourceBaseClass Value="Form"/>
         <UnitName Value="Unit1"/>
-        <IsVisibleTab Value="True"/>
-        <TopLine Value="20"/>
-        <CursorPos X="7" Y="49"/>
+        <TopLine Value="36"/>
+        <CursorPos Y="75"/>
         <UsageCount Value="42"/>
         <Loaded Value="True"/>
         <LoadedDesigner Value="True"/>
@@ -29,9 +28,10 @@
         <Filename Value="gocomicsapi.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="GoComicsAPI"/>
+        <IsVisibleTab Value="True"/>
         <EditorIndex Value="1"/>
-        <TopLine Value="10"/>
-        <CursorPos X="100" Y="37"/>
+        <TopLine Value="154"/>
+        <CursorPos Y="193"/>
         <UsageCount Value="42"/>
         <Loaded Value="True"/>
       </Unit>
@@ -42,6 +42,7 @@
         <CursorPos Y="2859"/>
         <UsageCount Value="20"/>
         <Loaded Value="True"/>
+        <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit>
       <Unit>
         <Filename Value="../../laz/components-3.4/Indy/Lib/Protocols/IdSSLOpenSSL.pas"/>
@@ -115,30 +116,6 @@
       </Unit>
     </Units>
     <JumpHistory HistoryIndex="29">
-      <Position>
-        <Filename Value="gocomicsapi.pas"/>
-        <Caret Line="155" TopLine="123"/>
-      </Position>
-      <Position>
-        <Filename Value="gocomicsapi.pas"/>
-        <Caret Line="158" TopLine="126"/>
-      </Position>
-      <Position>
-        <Filename Value="gocomicsapi.pas"/>
-        <Caret Line="160" TopLine="128"/>
-      </Position>
-      <Position>
-        <Filename Value="gocomicsapi.pas"/>
-        <Caret Line="163" TopLine="131"/>
-      </Position>
-      <Position>
-        <Filename Value="gocomicsapi.pas"/>
-        <Caret Line="164" TopLine="132"/>
-      </Position>
-      <Position>
-        <Filename Value="gocomicsapi.pas"/>
-        <Caret Line="166" TopLine="134"/>
-      </Position>
       <Position>
         <Filename Value="gocomicsapi.pas"/>
         <Caret Line="167" TopLine="135"/>
@@ -235,6 +212,30 @@
         <Filename Value="gocomicsapi.pas"/>
         <Caret Line="37" Column="100" TopLine="10"/>
       </Position>
+      <Position>
+        <Filename Value="unit1.pas"/>
+        <Caret Line="49" Column="7" TopLine="20"/>
+      </Position>
+      <Position>
+        <Filename Value="unit1.pas"/>
+        <Caret Line="75" TopLine="36"/>
+      </Position>
+      <Position>
+        <Filename Value="gocomicsapi.pas"/>
+        <Caret Line="193" TopLine="154"/>
+      </Position>
+      <Position>
+        <Filename Value="gocomicsapi.pas"/>
+        <Caret Line="192" Column="5" TopLine="154"/>
+      </Position>
+      <Position>
+        <Filename Value="gocomicsapi.pas"/>
+        <Caret Line="191" TopLine="152"/>
+      </Position>
+      <Position>
+        <Filename Value="gocomicsapi.pas"/>
+        <Caret Line="169" Column="5" TopLine="167"/>
+      </Position>
     </JumpHistory>
     <RunParams>
       <FormatVersion Value="2"/>
@@ -248,7 +249,7 @@
         <WatchScope Value="wpsLocal"/>
         <WatchKind Value="wpkWrite"/>
         <Source Value="unit1.pas"/>
-        <Line Value="67"/>
+        <Line Value="80"/>
       </Item>
     </BreakPoints>
   </Debugging>

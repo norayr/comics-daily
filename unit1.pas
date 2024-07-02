@@ -40,18 +40,30 @@ procedure TForm1.Button1Click(Sender: TObject);
 var
   GoComics: TGoComics;
   ComicDate: TDateTime;
-  DirPath, FullFilePath: string;
+  FilePath, FullFilePath: string;
 begin
   Memo1.Lines.Add('Starting comic download...');
   try
     GoComics := TGoComics.Create('calvinandhobbes');
     try
-      ComicDate := Now;  // or specify a specific date like EncodeDate(2024, 1, 1);
-      //ComicDate := EncodeDate(2024, 6, 1);
-      DirPath := IncludeTrailingPathDelimiter(GetComicsDailyDir);
-      GoComics.DownloadComic(ComicDate, DirPath, FullFilePath);
-      Memo1.Lines.Add('Comic downloaded successfully!');
-      ShowDownloadedComic(FullFilePath);
+      ComicDate := Now;  // Use today's date
+      FilePath := IncludeTrailingPathDelimiter(GetComicsDailyDir);
+      try
+        GoComics.DownloadComic(ComicDate, FilePath, FullFilePath);
+        Memo1.Lines.Add('Comic downloaded successfully!');
+        ShowDownloadedComic(FullFilePath);
+      except
+        on E: Exception do
+        begin
+          Memo1.Lines.Add('Error: ' + E.Message);
+          // Optionally, provide a fallback to the latest available comic
+          ComicDate := EncodeDate(2024, 7, 1); // Last known available date
+          Memo1.Lines.Add('Attempting to download the latest available comic...');
+          GoComics.DownloadComic(ComicDate, FilePath, FullFilePath);
+          Memo1.Lines.Add('Latest available comic downloaded successfully!');
+          ShowDownloadedComic(FullFilePath);
+        end;
+      end;
     finally
       GoComics.Free;
     end;
@@ -60,6 +72,7 @@ begin
       Memo1.Lines.Add('Error: ' + E.Message);
   end;
 end;
+
 
 
 procedure TForm1.ShowDownloadedComic(const FilePath: string);

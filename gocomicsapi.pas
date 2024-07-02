@@ -143,45 +143,56 @@ begin
   URL := Format('%s/%s/%s', [BASE_URL, FEndpoint, formattedDate]);
   Response := TStringStream.Create('');
   try
-    FHTTP.Request.UserAgent := 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36';
-    FHTTP.HandleRedirects := True;
-
-    FHTTP.Get(URL, Response);
-    ResponseStr := Response.DataString;  // Convert the stream to a string for parsing
-
-    // Save ResponseStr to a file for debugging
-    AssignFile(ResponseFile, 'ResponseStr.html');
-    Rewrite(ResponseFile);
     try
-      Write(ResponseFile, ResponseStr);
-    finally
-      CloseFile(ResponseFile);
+      FHTTP.Get(URL, Response);
+      ResponseStr := Response.DataString;  // Convert the stream to a string for parsing
+
+      // Save ResponseStr to a file
+      AssignFile(ResponseFile, 'ResponseStr.html');
+      Rewrite(ResponseFile);
+      try
+        Write(ResponseFile, ResponseStr);
+      finally
+        CloseFile(ResponseFile);
+      end;
+
+      ComicImg := ExtractImageUrlFromHTML(ResponseStr);
+
+      if ComicImg = '' then
+        raise Exception.Create('Comic image URL not found.');
+
+      FileName := ExtractFileName(ComicImg);
+      ContentType := '';
+      Result := TMemoryStream.Create;
+      try
+        FHTTP.Get(ComicImg, Result);
+        ContentType := FHTTP.Response.ContentType;
+        Result.Position := 0;
+      except
+        Result.Free;
+        raise;
+      end;
+    except
+      on E: EIdHTTPProtocolException do
+      begin
+        // Handle specific HTTP errors
+        if E.ErrorCode = 404 then
+          raise Exception.Create('Comic for this date not found.');
+        raise;
+      end;
+      on E: Exception do
+      begin
+        // Handle all other exceptions
+        raise;
+      end;
     end;
-
-    ComicImg := ExtractImageUrlFromHTML(ResponseStr);
-
-    if ComicImg = '' then
-      raise Exception.Create('Comic image URL not found.');
-
-    FileName := ExtractFileName(ComicImg);
-
-    // Prepare for the image download
-    Response.Clear;
-    FHTTP.Get(ComicImg, Response);
-
-    // Ensure the response is an image
-    if not AnsiStartsStr('image/', FHTTP.Response.ContentType) then
-      raise Exception.Create('Downloaded content is not an image.');
-
-    ContentType := FHTTP.Response.ContentType;
-    Result := TMemoryStream.Create;
-    Response.Position := 0;
-    Result.CopyFrom(Response, Response.Size);
-    Result.Position := 0;
   finally
     Response.Free;
   end;
 end;
+
+
+
 
 
 
