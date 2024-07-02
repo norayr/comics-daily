@@ -58,7 +58,7 @@
     </Target>
     <SearchPaths>
       <IncludeFiles Value="$(ProjOutDir)"/>
-      <OtherUnitFiles Value="../../laz/components-3.4/Indy/Lib/Protocols;../../laz/components-3.4/Indy/Lib/Core;../../laz/components-3.4/Indy/Lib/Security;../../laz/components-3.4/Indy/Lib/SuperCore;../../laz/components-3.4/Indy/Lib/System;../../laz/components-3.4/Indy/Other/Protocols"/>
+      <OtherUnitFiles Value="../../laz/components-3.4/Indy/Lib/Protocols;../../laz/components-3.4/Indy/Lib/Core;../../laz/components-3.4/Indy/Lib/Security;../../laz/components-3.4/Indy/Lib/SuperCore;../../laz/components-3.4/Indy/Lib/System;../../laz/components-3.4/Indy/Other/Protocols;../../laz/lazarus-3.4/components/turbopower_ipro"/>
       <UnitOutputDirectory Value="lib/$(TargetCPU)-$(TargetOS)"/>
     </SearchPaths>
     <Linking>

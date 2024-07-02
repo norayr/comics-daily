@@ -5,7 +5,7 @@ unit GoComicsAPI;
 interface
 
 uses
-  SysUtils, Classes, fpjson, jsonparser, IdHTTP, IdSSLOpenSSL, LazFileUtils, strutils;
+  SysUtils, Classes, fpjson, jsonparser, IdHTTP, IdSSLOpenSSL, LazFileUtils, strutils, fphttpclient, fgl;
 
 const
   BASE_URL = 'https://www.gocomics.com';
@@ -14,6 +14,10 @@ const
 type
   EInvalidDateError = class(Exception);
   EInvalidEndpointError = class(Exception);
+
+  TStringListHelper = class helper for TStringList
+    function FindURL(const Domain: string): string;
+  end;
 
   { TGoComics }
 
@@ -30,7 +34,7 @@ type
     function FormatDate(const ADate: TDateTime): string;
     function GetJSONData(const URL: string): TJSONObject;
     function ParseDate(const ADateStr: string): TDateTime;
-   // function ExtractImageUrlFromHTML(const HTML: string): string;
+  //  function ExtractImageUrlFromHtml(const Html: string): string;
   public
     constructor Create(const AEndpoint: string);
     destructor Destroy; override;
@@ -43,7 +47,18 @@ type
 
 implementation
 
+function TStringListHelper.FindURL(const Domain: string): string;
+var
+  i: Integer;
+begin
+  for i := 0 to Count - 1 do
+    if Pos(Domain, Strings[i]) > 0 then
+      Exit(Strings[i]);
+  Result := '';
+end;
+
 { TGoComics }
+
 function ReadStreamToString(AStream: TStream): string;
 var
   StringStream: TStringStream;
@@ -105,33 +120,42 @@ begin
   end;
 end;
 
-function ExtractImageUrlFromHTML(const HTML: string): string;
+function GetHtmlFromUrl(const Url: string): string;
 var
-  MetaTagStart, ContentStart, ContentEnd: Integer;
-  MetaTag, ImageUrl: string;
+  HttpClient: TFPHTTPClient;
 begin
-  // Find the <meta property="og:image" ...> tag
-  MetaTagStart := Pos('<meta property="og:image"', HTML);
-  if MetaTagStart = 0 then
-    Exit('');
-
-  // Find the content attribute within the <meta property="og:image" ...> tag
-  ContentStart := PosEx('content="', HTML, MetaTagStart);
-  if ContentStart = 0 then
-    Exit('');
-  ContentStart := ContentStart + Length('content="');
-
-  // Find the end of the content attribute
-  ContentEnd := PosEx('"', HTML, ContentStart);
-  if ContentEnd = 0 then
-    Exit('');
-
-  // Extract the image URL
-  ImageUrl := Copy(HTML, ContentStart, ContentEnd - ContentStart);
-
-  Result := ImageUrl;
+  HttpClient := TFPHTTPClient.Create(nil);
+  try
+    Result := HttpClient.SimpleGet(Url);
+  finally
+    HttpClient.Free;
+  end;
 end;
 
+function ExtractImageUrlFromHtml(const Html: string): string;
+var
+  ImgPos, SrcPos: Integer;
+  ImgTag, SrcUrl: string;
+begin
+  Result := '';
+  ImgPos := Pos('<img', Html);
+  while ImgPos > 0 do
+  begin
+    ImgTag := Copy(Html, ImgPos, PosEx('>', Html, ImgPos) - ImgPos + 1);
+    SrcPos := Pos('src="', ImgTag);
+    if SrcPos > 0 then
+    begin
+      SrcPos := SrcPos + Length('src="');
+      SrcUrl := Copy(ImgTag, SrcPos, PosEx('"', ImgTag, SrcPos) - SrcPos);
+      if Pos('assets.amuniversal.com', SrcUrl) > 0 then
+      begin
+        Result := SrcUrl;
+        Break;
+      end;
+    end;
+    ImgPos := PosEx('<img', Html, ImgPos + Length('<img'));
+  end;
+end;
 
 function TGoComics.GetImageUrl(const ADate: TDateTime; out FileName: string; out ContentType: string): TMemoryStream;
 var
@@ -156,7 +180,7 @@ begin
         CloseFile(ResponseFile);
       end;
 
-      ComicImg := ExtractImageUrlFromHTML(ResponseStr);
+      ComicImg := ExtractImageUrlFromHtml(ResponseStr);
 
       if ComicImg = '' then
         raise Exception.Create('Comic image URL not found.');
@@ -190,12 +214,6 @@ begin
     Response.Free;
   end;
 end;
-
-
-
-
-
-
 
 function TGoComics.FormatDate(const ADate: TDateTime): string;
 begin
@@ -299,7 +317,6 @@ begin
     ImageStream.Free;
   end;
 end;
-
 
 procedure TGoComics.ShowComic(const ADate: TDateTime);
 begin

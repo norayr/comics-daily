@@ -44,7 +44,8 @@ var
 begin
   Memo1.Lines.Add('Starting comic download...');
   try
-    GoComics := TGoComics.Create('calvinandhobbes');
+//    GoComics := TGoComics.Create('calvinandhobbes');
+      GoComics := TGoComics.Create('pearlsbeforeswine');
     try
       ComicDate := Now;  // Use today's date
       FilePath := IncludeTrailingPathDelimiter(GetComicsDailyDir);
