@@ -6,7 +6,7 @@ interface
 
 uses
   Classes, SysUtils, Forms, Controls, Graphics, Dialogs, StdCtrls, ExtCtrls,
-  FPImage, FPReadJPEG, FPReadPNG, FPReadGIF, lazcanvas, fpimgcanv,  FPWriteBMP,
+  FPImage, FPReadJPEG, FPReadPNG, FPReadGIF, FPWriteBMP,
   LazFileUtils, IntfGraphics, Math,
   GoComicsAPI;
 
