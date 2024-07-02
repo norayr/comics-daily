@@ -35,6 +35,7 @@ type
     FCurrentDate: TDateTime;
     FCurrentComic: string;
     procedure LoadImageFromStream(Stream: TMemoryStream; const ContentType: string);
+    procedure ResizeImage;
     function GetComicsDailyDir: string;
     function GetFileExtension(const ContentType: string): string;
     procedure LoadComic(const Comic: string; const ComicDate: TDateTime);
@@ -85,6 +86,7 @@ end;
 procedure TForm1.FormResize(Sender: TObject);
 begin
   UpdateLayout; // Adjust the layout when the form is resized
+  ResizeImage; // Resize the image when the form is resized
 end;
 
 procedure TForm1.ShowComicButtonClick(Sender: TObject);
@@ -192,64 +194,6 @@ begin
     Memo1.Lines.Add('No comic to save.');
 end;
 
-{
-procedure TForm1.LoadImageFromStream(Stream: TMemoryStream; const ContentType: string);
-var
-  Img: TFPMemoryImage;
-  Reader: TFPCustomImageReader;
-  Scale: Double;
-  NewWidth, NewHeight: Integer;
-  TempBitmap, Bitmap: TBitmap;
-begin
-  Img := TFPMemoryImage.Create(0, 0);
-  try
-    if Pos('jpeg', ContentType) > 0 then
-      Reader := TFPReaderJPEG.Create
-    else if Pos('png', ContentType) > 0 then
-      Reader := TFPReaderPNG.Create
-    else if Pos('gif', ContentType) > 0 then
-      Reader := TFPReaderGIF.Create
-    else
-      raise Exception.Create('Unsupported image format: ' + ContentType); // Improved error message
-
-    try
-      Stream.Position := 0;
-      Img.LoadFromStream(Stream, Reader);
-
-      // Convert TFPMemoryImage to TBitmap
-      Bitmap := TBitmap.Create;
-      try
-        Bitmap.Assign(Img);
-
-        // Calculate scaling to fit within Image1 while preserving aspect ratio
-        Scale := Min(Image1.Width / Bitmap.Width, Image1.Height / Bitmap.Height);
-        NewWidth := Round(Bitmap.Width * Scale);
-        NewHeight := Round(Bitmap.Height * Scale);
-
-        // Create a temporary bitmap to hold the scaled image
-        TempBitmap := TBitmap.Create;
-        try
-          TempBitmap.SetSize(NewWidth, NewHeight);
-          TempBitmap.Canvas.StretchDraw(Rect(0, 0, NewWidth, NewHeight), Bitmap);
-          Image1.Picture.Bitmap.SetSize(Image1.Width, Image1.Height);
-          Image1.Picture.Bitmap.Canvas.FillRect(0, 0, Image1.Width, Image1.Height); // Clear the canvas
-          Image1.Picture.Bitmap.Canvas.Draw((Image1.Width - NewWidth) div 2, (Image1.Height - NewHeight) div 2, TempBitmap);
-        finally
-          TempBitmap.Free;
-        end;
-      finally
-        Bitmap.Free;
-      end;
-    finally
-      Reader.Free;
-    end;
-  finally
-    Img.Free;
-  end;
-end;
-}
-
-
 procedure TForm1.LoadImageFromStream(Stream: TMemoryStream; const ContentType: string);
 var
   Img: TFPMemoryImage;
@@ -313,8 +257,17 @@ begin
   end;
 end;
 
-
-
+procedure TForm1.ResizeImage;
+var
+  Scale: Double;
+  NewWidth, NewHeight: Integer;
+begin
+  if Assigned(FComicStream) and (FComicStream.Size > 0) then
+  begin
+    FComicStream.Position := 0;
+    LoadImageFromStream(FComicStream, FContentType);
+  end;
+end;
 
 function TForm1.GetFileExtension(const ContentType: string): string;
 begin
@@ -375,7 +328,7 @@ begin
   SaveComicButton.Left := ShowComicButton.Left;
   SaveComicButton.Top := PrevButton.Top + PrevButton.Height + Margin;
 
-  ComboBox1.Top:= ShowComicButton.Top;
+  ComboBox1.Top := ShowComicButton.Top;
 end;
 
 end.
