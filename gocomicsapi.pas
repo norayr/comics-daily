@@ -5,7 +5,7 @@ unit GoComicsAPI;
 interface
 
 uses
-  SysUtils, Classes, fpjson, jsonparser, IdHTTP, IdSSLOpenSSL, LazFileUtils, strutils, fphttpclient, fgl;
+  SysUtils, Classes, fpjson, jsonparser, fphttpclient, opensslsockets, LazFileUtils, strutils, fgl;
 
 const
   BASE_URL = 'https://www.gocomics.com';
@@ -26,15 +26,13 @@ type
     FEndpoint: string;
     FTitle: string;
     FStartDate: TDateTime;
-    FHTTP: TIdHTTP;
-    FSSLHandler: TIdSSLIOHandlerSocketOpenSSL;
+    HTTPClient: TFPHTTPClient;
     function GetStartDate: TDateTime;
     function GetTitle: string;
     function GetImageUrl(const ADate: TDateTime; out FileName: string; out ContentType: string): TMemoryStream;
     function FormatDate(const ADate: TDateTime): string;
     function GetJSONData(const URL: string): TJSONObject;
     function ParseDate(const ADateStr: string): TDateTime;
-  //  function ExtractImageUrlFromHtml(const Html: string): string;
   public
     constructor Create(const AEndpoint: string);
     destructor Destroy; override;
@@ -168,7 +166,8 @@ begin
   Response := TStringStream.Create('');
   try
     try
-      FHTTP.Get(URL, Response);
+      HTTPClient.AllowRedirect := True;
+      HTTPClient.Get(URL, Response);
       ResponseStr := Response.DataString;  // Convert the stream to a string for parsing
 
       // Save ResponseStr to a file
@@ -189,24 +188,22 @@ begin
       ContentType := '';
       Result := TMemoryStream.Create;
       try
-        FHTTP.Get(ComicImg, Result);
-        ContentType := FHTTP.Response.ContentType;
+        HTTPClient.Get(ComicImg, Result);
+        ContentType := HTTPClient.ResponseHeaders.Values['Content-Type'];
         Result.Position := 0;
       except
         Result.Free;
         raise;
       end;
     except
-      on E: EIdHTTPProtocolException do
+      on E: EHTTPClient do
       begin
-        // Handle specific HTTP errors
-        if E.ErrorCode = 404 then
+        if Pos('404', E.Message) > 0 then
           raise Exception.Create('Comic for this date not found.');
         raise;
       end;
       on E: Exception do
       begin
-        // Handle all other exceptions
         raise;
       end;
     end;
@@ -230,7 +227,7 @@ begin
     // URL is a web resource, fetch it using HTTP
     Response := TStringStream.Create('');
     try
-      FHTTP.Get(URL, Response);
+      HTTPClient.Get(URL, Response);
       Result := TJSONObject(GetJSON(Response.DataString));
     finally
       Response.Free;
@@ -254,14 +251,7 @@ var
   JSONData, EndpointData: TJSONObject;
 begin
   FEndpoint := AEndpoint;
-  FHTTP := TIdHTTP.Create(nil);
-  FSSLHandler := TIdSSLIOHandlerSocketOpenSSL.Create(nil);
-  FHTTP.IOHandler := FSSLHandler;
-  FHTTP.HandleRedirects := True;
-
-  // Set SSL options
-  FSSLHandler.SSLOptions.Method := sslvTLSv1_1;
-  FSSLHandler.SSLOptions.Mode := sslmClient;
+  HTTPClient := TFPHTTPClient.Create(nil);
 
   // Load endpoint data from JSON
   JSONData := GetJSONData('/tmp/endpoints.json'); // Adjust path as necessary
@@ -281,8 +271,7 @@ end;
 
 destructor TGoComics.Destroy;
 begin
-  FHTTP.Free;
-  FSSLHandler.Free;
+  HTTPClient.Free;
   inherited Destroy;
 end;
 
@@ -330,7 +319,7 @@ var
 begin
   Response := TStringStream.Create;
   try
-    FHTTP.Get(BASE_RANDOM_URL + '/' + FEndpoint, Response);
+    HTTPClient.Get(BASE_RANDOM_URL + '/' + FEndpoint, Response);
     JSONData := TJSONObject(GetJSON(Response.DataString));
     try
       Result := ParseDate(JSONData.Get('date', ''));
