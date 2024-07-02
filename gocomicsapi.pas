@@ -240,7 +240,7 @@ begin
   end;
 end;
 }
-
+ {
 function TGoComics.GetImageUrl(const ADate: TDateTime; out FileName: string; out ContentType: string): TMemoryStream;
 var
   URL, formattedDate, ComicImg: string;
@@ -280,6 +280,111 @@ begin
     raise;
   end;
 end;
+  }
+  {
+  function TGoComics.GetImageUrl(const ADate: TDateTime; out FileName: string; out ContentType: string): TMemoryStream;
+var
+  URL, formattedDate, ComicImg: string;
+  Response: TStringStream;
+    ResponseFile: TextFile;
+begin
+  formattedDate := FormatDate(ADate);
+  URL := Format('%s/%s/%s', [BASE_URL, FEndpoint, formattedDate]);
+  Response := TStringStream.Create('');
+  Result := TMemoryStream.Create;
+  try
+    try
+      HTTPClient.AllowRedirect := True;
+      HTTPClient.Get(URL, Response); // Get the HTML page
+
+      // Debug log the response content
+      AssignFile(ResponseFile, 'ResponseStr.html');
+      Rewrite(ResponseFile);
+      try
+        Write(ResponseFile, Response.DataString);
+      finally
+        CloseFile(ResponseFile);
+      end;
+
+      ComicImg := ExtractImageUrlFromHtml(Response.DataString); // Extract the image URL from HTML
+
+      if ComicImg = '' then
+        raise Exception.Create('Comic image URL not found in the HTML response.');
+
+      // Download the comic image
+      HTTPClient.Get(ComicImg, Result); // Get the image directly into the stream
+      Result.Position := 0;
+      ContentType := HTTPClient.ResponseHeaders.Values['Content-Type']; // Extract content type
+      FileName := ExtractFileName(ComicImg); // Use the extracted file name
+    except
+      on E: EHTTPClient do
+      begin
+        if Pos('404', E.Message) > 0 then
+          raise Exception.Create('Comic for this date not found.');
+        raise;
+      end;
+      on E: Exception do
+      begin
+        Result.Free;
+        raise;
+      end;
+    end;
+  finally
+    Response.Free;
+  end;
+end;
+   }
+   function TGoComics.GetImageUrl(const ADate: TDateTime; out FileName: string; out ContentType: string): TMemoryStream;
+   var
+     URL, formattedDate, ComicImg: string;
+     Response: TStringStream;
+     ResponseFile: TextFile;
+   begin
+     formattedDate := FormatDate(ADate);
+     URL := Format('%s/%s/%s', [BASE_URL, FEndpoint, formattedDate]);
+     Response := TStringStream.Create('');
+     Result := TMemoryStream.Create;
+     try
+       try
+         HTTPClient.AllowRedirect := True;
+         HTTPClient.Get(URL, Response); // Get the HTML page
+
+         // Debug log the response content
+         AssignFile(ResponseFile, 'ResponseStr.html');
+         Rewrite(ResponseFile);
+         try
+           Write(ResponseFile, Response.DataString);
+         finally
+           CloseFile(ResponseFile);
+         end;
+
+         ComicImg := ExtractImageUrlFromHtml(Response.DataString); // Extract the image URL from HTML
+
+         if ComicImg = '' then
+           raise Exception.Create('Comic image URL not found in the HTML response.');
+
+         // Download the comic image
+         HTTPClient.Get(ComicImg, Result); // Get the image directly into the stream
+         Result.Position := 0;
+         ContentType := HTTPClient.ResponseHeaders.Values['Content-Type']; // Extract content type
+         FileName := ExtractFileName(ComicImg); // Use the extracted file name
+       except
+         on E: EHTTPClient do
+         begin
+           if Pos('404', E.Message) > 0 then
+             raise Exception.Create('Comic for this date not found.');
+           raise;
+         end;
+         on E: Exception do
+         begin
+           Result.Free;
+           raise;
+         end;
+       end;
+     finally
+       Response.Free;
+     end;
+   end;
 
 
 

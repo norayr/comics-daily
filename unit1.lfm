@@ -1,16 +1,18 @@
 object Form1: TForm1
   Left = 341
-  Height = 992
+  Height = 869
   Top = 346
-  Width = 1002
+  Width = 1017
   Caption = 'Form1'
-  ClientHeight = 992
-  ClientWidth = 1002
+  ClientHeight = 869
+  ClientWidth = 1017
   LCLVersion = '3.99.0.0'
+  OnCreate = FormCreate
+  OnResize = FormResize
   object Memo1: TMemo
-    Left = 16
+    Left = 32
     Height = 226
-    Top = 8
+    Top = 536
     Width = 466
     Lines.Strings = (
       'Memo1'
@@ -18,27 +20,54 @@ object Form1: TForm1
     TabOrder = 0
   end
   object ShowComicButton: TButton
-    Left = 760
+    Left = 632
     Height = 25
-    Top = 344
+    Top = 296
     Width = 211
     Caption = 'show'
     TabOrder = 1
     OnClick = ShowComicButtonClick
   end
   object Image1: TImage
-    Left = 16
-    Height = 546
-    Top = 376
-    Width = 658
+    Left = 8
+    Height = 266
+    Top = 8
+    Width = 986
   end
   object SaveComicButton: TButton
-    Left = 760
+    Left = 632
     Height = 25
-    Top = 392
+    Top = 400
     Width = 211
     Caption = 'download'
     TabOrder = 2
     OnClick = SaveComicButtonClick
+  end
+  object prevButton: TButton
+    Left = 632
+    Height = 25
+    Top = 352
+    Width = 75
+    Caption = '<--'
+    TabOrder = 3
+    OnClick = prevButtonClick
+  end
+  object nextButton: TButton
+    Left = 768
+    Height = 25
+    Top = 352
+    Width = 75
+    Caption = '-->'
+    TabOrder = 4
+    OnClick = nextButtonClick
+  end
+  object ComboBox1: TComboBox
+    Left = 16
+    Height = 36
+    Top = 296
+    Width = 260
+    ItemHeight = 0
+    TabOrder = 5
+    Text = 'ComboBox1'
   end
 end
