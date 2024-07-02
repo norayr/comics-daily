@@ -9,7 +9,7 @@
         <IsPartOfProject Value="True"/>
         <EditorIndex Value="-1"/>
         <CursorPos X="24" Y="13"/>
-        <UsageCount Value="36"/>
+        <UsageCount Value="42"/>
       </Unit>
       <Unit>
         <Filename Value="unit1.pas"/>
@@ -18,9 +18,10 @@
         <HasResources Value="True"/>
         <ResourceBaseClass Value="Form"/>
         <UnitName Value="Unit1"/>
-        <TopLine Value="42"/>
-        <CursorPos X="5" Y="78"/>
-        <UsageCount Value="36"/>
+        <IsVisibleTab Value="True"/>
+        <TopLine Value="20"/>
+        <CursorPos X="7" Y="49"/>
+        <UsageCount Value="42"/>
         <Loaded Value="True"/>
         <LoadedDesigner Value="True"/>
       </Unit>
@@ -28,180 +29,211 @@
         <Filename Value="gocomicsapi.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="GoComicsAPI"/>
-        <IsVisibleTab Value="True"/>
         <EditorIndex Value="1"/>
-        <TopLine Value="168"/>
-        <CursorPos Y="188"/>
-        <UsageCount Value="36"/>
+        <TopLine Value="10"/>
+        <CursorPos X="100" Y="37"/>
+        <UsageCount Value="42"/>
         <Loaded Value="True"/>
       </Unit>
       <Unit>
         <Filename Value="../../laz/components-3.4/Indy/Lib/Protocols/IdHTTP.pas"/>
         <EditorIndex Value="2"/>
-        <TopLine Value="1797"/>
-        <CursorPos Y="1817"/>
-        <UsageCount Value="17"/>
+        <TopLine Value="2840"/>
+        <CursorPos Y="2859"/>
+        <UsageCount Value="20"/>
         <Loaded Value="True"/>
       </Unit>
       <Unit>
         <Filename Value="../../laz/components-3.4/Indy/Lib/Protocols/IdSSLOpenSSL.pas"/>
-        <EditorIndex Value="3"/>
+        <EditorIndex Value="-1"/>
         <TopLine Value="2329"/>
-        <CursorPos Y="2349"/>
-        <UsageCount Value="16"/>
-        <Loaded Value="True"/>
+        <CursorPos Y="2348"/>
+        <UsageCount Value="17"/>
       </Unit>
       <Unit>
         <Filename Value="/usr/lib/fpc/3.2.2/source/rtl/inc/objpash.inc"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="186"/>
         <CursorPos X="23" Y="206"/>
-        <UsageCount Value="10"/>
+        <UsageCount Value="9"/>
       </Unit>
       <Unit>
         <Filename Value="../../laz/components-3.4/Indy/Lib/System/IdStackUnix.pas"/>
-        <EditorIndex Value="4"/>
+        <EditorIndex Value="-1"/>
         <TopLine Value="413"/>
         <CursorPos Y="422"/>
-        <UsageCount Value="10"/>
-        <Loaded Value="True"/>
+        <UsageCount Value="11"/>
       </Unit>
       <Unit>
         <Filename Value="../../laz/components-3.4/Indy/Lib/Core/IdThreadSafe.pas"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="244"/>
         <CursorPos Y="263"/>
-        <UsageCount Value="10"/>
+        <UsageCount Value="9"/>
       </Unit>
       <Unit>
         <Filename Value="../../laz/lazarus-3.4/lcl/include/fpimagebitmap.inc"/>
-        <EditorIndex Value="5"/>
+        <EditorIndex Value="-1"/>
         <TopLine Value="121"/>
         <CursorPos Y="141"/>
         <UsageCount Value="10"/>
-        <Loaded Value="True"/>
+      </Unit>
+      <Unit>
+        <Filename Value="/usr/lib/fpc/3.2.2/source/rtl/objpas/sysutils/datih.inc"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="137"/>
+        <CursorPos X="10" Y="157"/>
+        <UsageCount Value="10"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../../laz/components-3.4/Indy/Lib/System/IdStack.pas"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="777"/>
+        <CursorPos Y="796"/>
+        <UsageCount Value="10"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../../laz/components-3.4/Indy/Lib/Core/IdIOHandlerStack.pas"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="375"/>
+        <CursorPos Y="394"/>
+        <UsageCount Value="10"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../../laz/components-3.4/Indy/Lib/Protocols/IdSSLOpenSSLHeaders.pas"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="19478"/>
+        <CursorPos X="10" Y="19499"/>
+        <UsageCount Value="10"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../../laz/lazarus-3.4/lcl/include/control.inc"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="2957"/>
+        <CursorPos Y="2976"/>
+        <UsageCount Value="10"/>
       </Unit>
     </Units>
     <JumpHistory HistoryIndex="29">
       <Position>
-        <Filename Value="../../laz/components-3.4/Indy/Lib/Protocols/IdSSLOpenSSL.pas"/>
-        <Caret Line="2941" TopLine="2913"/>
-      </Position>
-      <Position>
-        <Filename Value="../../laz/components-3.4/Indy/Lib/Protocols/IdSSLOpenSSL.pas"/>
-        <Caret Line="2942" TopLine="2913"/>
-      </Position>
-      <Position>
-        <Filename Value="../../laz/components-3.4/Indy/Lib/Protocols/IdSSLOpenSSL.pas"/>
-        <Caret Line="2943" TopLine="2913"/>
-      </Position>
-      <Position>
-        <Filename Value="../../laz/components-3.4/Indy/Lib/Protocols/IdSSLOpenSSL.pas"/>
-        <Caret Line="2944" TopLine="2913"/>
-      </Position>
-      <Position>
-        <Filename Value="../../laz/components-3.4/Indy/Lib/Protocols/IdSSLOpenSSL.pas"/>
-        <Caret Line="2946" TopLine="2914"/>
-      </Position>
-      <Position>
-        <Filename Value="../../laz/components-3.4/Indy/Lib/Protocols/IdSSLOpenSSL.pas"/>
-        <Caret Line="2947" TopLine="2915"/>
-      </Position>
-      <Position>
-        <Filename Value="../../laz/components-3.4/Indy/Lib/Protocols/IdSSLOpenSSL.pas"/>
-        <Caret Line="2948" TopLine="2916"/>
-      </Position>
-      <Position>
-        <Filename Value="../../laz/components-3.4/Indy/Lib/Protocols/IdSSLOpenSSL.pas"/>
-        <Caret Line="2949" TopLine="2917"/>
-      </Position>
-      <Position>
-        <Filename Value="../../laz/components-3.4/Indy/Lib/Protocols/IdSSLOpenSSL.pas"/>
-        <Caret Line="2951" TopLine="2919"/>
-      </Position>
-      <Position>
-        <Filename Value="../../laz/components-3.4/Indy/Lib/Protocols/IdSSLOpenSSL.pas"/>
-        <Caret Line="2810" TopLine="2790"/>
-      </Position>
-      <Position>
-        <Filename Value="../../laz/components-3.4/Indy/Lib/Protocols/IdSSLOpenSSL.pas"/>
-        <Caret Line="2811" TopLine="2790"/>
-      </Position>
-      <Position>
-        <Filename Value="../../laz/components-3.4/Indy/Lib/Protocols/IdSSLOpenSSL.pas"/>
-        <Caret Line="2812" TopLine="2790"/>
-      </Position>
-      <Position>
-        <Filename Value="../../laz/components-3.4/Indy/Lib/Protocols/IdSSLOpenSSL.pas"/>
-        <Caret Line="2813" TopLine="2790"/>
-      </Position>
-      <Position>
-        <Filename Value="../../laz/components-3.4/Indy/Lib/System/IdStackUnix.pas"/>
-        <Caret Line="422" TopLine="413"/>
-      </Position>
-      <Position>
-        <Filename Value="../../laz/components-3.4/Indy/Lib/Protocols/IdSSLOpenSSL.pas"/>
-        <Caret Line="2349" TopLine="2329"/>
+        <Filename Value="gocomicsapi.pas"/>
+        <Caret Line="155" TopLine="123"/>
       </Position>
       <Position>
         <Filename Value="gocomicsapi.pas"/>
-        <Caret Line="188" TopLine="168"/>
-      </Position>
-      <Position>
-        <Filename Value="../../laz/components-3.4/Indy/Lib/Protocols/IdHTTP.pas"/>
-        <Caret Line="1817" TopLine="1797"/>
-      </Position>
-      <Position>
-        <Filename Value="../../laz/components-3.4/Indy/Lib/Protocols/IdSSLOpenSSL.pas"/>
-        <Caret Line="2349" TopLine="2329"/>
-      </Position>
-      <Position>
-        <Filename Value="../../laz/components-3.4/Indy/Lib/System/IdStackUnix.pas"/>
-        <Caret Line="422" TopLine="413"/>
+        <Caret Line="158" TopLine="126"/>
       </Position>
       <Position>
         <Filename Value="gocomicsapi.pas"/>
-        <Caret Line="188" TopLine="168"/>
+        <Caret Line="160" TopLine="128"/>
       </Position>
       <Position>
         <Filename Value="gocomicsapi.pas"/>
-        <Caret Line="86" Column="7" TopLine="63"/>
-      </Position>
-      <Position>
-        <Filename Value="../../laz/components-3.4/Indy/Lib/Protocols/IdSSLOpenSSL.pas"/>
-        <Caret Line="2349" TopLine="2329"/>
+        <Caret Line="163" TopLine="131"/>
       </Position>
       <Position>
         <Filename Value="gocomicsapi.pas"/>
-        <Caret Line="188" TopLine="168"/>
+        <Caret Line="164" TopLine="132"/>
       </Position>
       <Position>
         <Filename Value="gocomicsapi.pas"/>
-        <Caret Line="189" TopLine="168"/>
+        <Caret Line="166" TopLine="134"/>
       </Position>
       <Position>
         <Filename Value="gocomicsapi.pas"/>
-        <Caret Line="190" Column="21" TopLine="168"/>
-      </Position>
-      <Position>
-        <Filename Value="../../laz/components-3.4/Indy/Lib/Protocols/IdSSLOpenSSL.pas"/>
-        <Caret Line="2349" TopLine="2329"/>
+        <Caret Line="167" TopLine="135"/>
       </Position>
       <Position>
         <Filename Value="gocomicsapi.pas"/>
-        <Caret Line="188" TopLine="168"/>
+        <Caret Line="168" TopLine="136"/>
       </Position>
       <Position>
-        <Filename Value="../../laz/components-3.4/Indy/Lib/Protocols/IdHTTP.pas"/>
-        <Caret Line="1817" TopLine="1797"/>
+        <Filename Value="gocomicsapi.pas"/>
+        <Caret Line="169" TopLine="138"/>
       </Position>
       <Position>
-        <Filename Value="../../laz/components-3.4/Indy/Lib/Protocols/IdSSLOpenSSL.pas"/>
-        <Caret Line="2349" TopLine="2329"/>
+        <Filename Value="gocomicsapi.pas"/>
+        <Caret Line="170" TopLine="138"/>
       </Position>
       <Position>
-        <Filename Value="../../laz/components-3.4/Indy/Lib/System/IdStackUnix.pas"/>
-        <Caret Line="422" TopLine="413"/>
+        <Filename Value="gocomicsapi.pas"/>
+        <Caret Line="172" TopLine="140"/>
+      </Position>
+      <Position>
+        <Filename Value="gocomicsapi.pas"/>
+        <Caret Line="174" TopLine="142"/>
+      </Position>
+      <Position>
+        <Filename Value="gocomicsapi.pas"/>
+        <Caret Line="142" TopLine="122"/>
+      </Position>
+      <Position>
+        <Filename Value="gocomicsapi.pas"/>
+        <Caret Line="148" Column="25" TopLine="122"/>
+      </Position>
+      <Position>
+        <Filename Value="gocomicsapi.pas"/>
+        <Caret Line="145" TopLine="122"/>
+      </Position>
+      <Position>
+        <Filename Value="gocomicsapi.pas"/>
+        <Caret Line="146" TopLine="122"/>
+      </Position>
+      <Position>
+        <Filename Value="gocomicsapi.pas"/>
+        <Caret Line="147" TopLine="122"/>
+      </Position>
+      <Position>
+        <Filename Value="gocomicsapi.pas"/>
+        <Caret Line="150" TopLine="122"/>
+      </Position>
+      <Position>
+        <Filename Value="gocomicsapi.pas"/>
+        <Caret Line="151" TopLine="122"/>
+      </Position>
+      <Position>
+        <Filename Value="gocomicsapi.pas"/>
+        <Caret Line="152" TopLine="122"/>
+      </Position>
+      <Position>
+        <Filename Value="gocomicsapi.pas"/>
+        <Caret Line="153" TopLine="122"/>
+      </Position>
+      <Position>
+        <Filename Value="gocomicsapi.pas"/>
+        <Caret Line="155" TopLine="123"/>
+      </Position>
+      <Position>
+        <Filename Value="gocomicsapi.pas"/>
+        <Caret Line="158" TopLine="126"/>
+      </Position>
+      <Position>
+        <Filename Value="gocomicsapi.pas"/>
+        <Caret Line="160" TopLine="128"/>
+      </Position>
+      <Position>
+        <Filename Value="gocomicsapi.pas"/>
+        <Caret Line="140" Column="11" TopLine="128"/>
+      </Position>
+      <Position>
+        <Filename Value="gocomicsapi.pas"/>
+        <Caret Line="185" TopLine="146"/>
+      </Position>
+      <Position>
+        <Filename Value="unit1.pas"/>
+        <Caret Line="48" Column="17" TopLine="37"/>
+      </Position>
+      <Position>
+        <Filename Value="unit1.pas"/>
+        <Caret Line="93" TopLine="54"/>
+      </Position>
+      <Position>
+        <Filename Value="unit1.pas"/>
+        <Caret Line="63" TopLine="30"/>
+      </Position>
+      <Position>
+        <Filename Value="gocomicsapi.pas"/>
+        <Caret Line="37" Column="100" TopLine="10"/>
       </Position>
     </JumpHistory>
     <RunParams>
@@ -215,29 +247,8 @@
         <Kind Value="bpkSource"/>
         <WatchScope Value="wpsLocal"/>
         <WatchKind Value="wpkWrite"/>
-        <Source Value="../../laz/components-3.4/Indy/Lib/Protocols/IdHTTP.pas"/>
-        <Line Value="1817"/>
-      </Item>
-      <Item>
-        <Kind Value="bpkSource"/>
-        <WatchScope Value="wpsLocal"/>
-        <WatchKind Value="wpkWrite"/>
-        <Source Value="../../laz/components-3.4/Indy/Lib/Protocols/IdSSLOpenSSL.pas"/>
-        <Line Value="2348"/>
-      </Item>
-      <Item>
-        <Kind Value="bpkSource"/>
-        <WatchScope Value="wpsLocal"/>
-        <WatchKind Value="wpkWrite"/>
-        <Source Value="gocomicsapi.pas"/>
-        <Line Value="188"/>
-      </Item>
-      <Item>
-        <Kind Value="bpkSource"/>
-        <WatchScope Value="wpsLocal"/>
-        <WatchKind Value="wpkWrite"/>
-        <Source Value="../../laz/components-3.4/Indy/Lib/System/IdStackUnix.pas"/>
-        <Line Value="422"/>
+        <Source Value="unit1.pas"/>
+        <Line Value="67"/>
       </Item>
     </BreakPoints>
   </Debugging>

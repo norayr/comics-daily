@@ -5,7 +5,7 @@ unit GoComicsAPI;
 interface
 
 uses
-  SysUtils, Classes, fpjson, jsonparser, IdHTTP, IdSSLOpenSSL, IdCompressorZLib, IdSSLOpenSSLHeaders;
+  SysUtils, Classes, fpjson, jsonparser, IdHTTP, IdSSLOpenSSL, LazFileUtils, strutils;
 
 const
   BASE_URL = 'https://www.gocomics.com';
@@ -26,14 +26,15 @@ type
     FSSLHandler: TIdSSLIOHandlerSocketOpenSSL;
     function GetStartDate: TDateTime;
     function GetTitle: string;
-    function GetImageUrl(const ADate: TDateTime): string;
+    function GetImageUrl(const ADate: TDateTime; out FileName: string; out ContentType: string): TMemoryStream;
     function FormatDate(const ADate: TDateTime): string;
     function GetJSONData(const URL: string): TJSONObject;
     function ParseDate(const ADateStr: string): TDateTime;
+   // function ExtractImageUrlFromHTML(const HTML: string): string;
   public
     constructor Create(const AEndpoint: string);
     destructor Destroy; override;
-    procedure DownloadComic(const ADate: TDateTime; const APath: string);
+    procedure DownloadComic(const ADate: TDateTime; const APath: string; out FullFilePath: string);
     procedure ShowComic(const ADate: TDateTime);
     function RandomDate: TDateTime;
     property StartDate: TDateTime read GetStartDate;
@@ -43,6 +44,18 @@ type
 implementation
 
 { TGoComics }
+function ReadStreamToString(AStream: TStream): string;
+var
+  StringStream: TStringStream;
+begin
+  StringStream := TStringStream.Create('');
+  try
+    StringStream.CopyFrom(AStream, AStream.Size);
+    Result := StringStream.DataString;
+  finally
+    StringStream.Free;
+  end;
+end;
 
 function ReadFileToString(const FileName: string): string;
 var
@@ -73,30 +86,110 @@ begin
   Result := FTitle;
 end;
 
-function TGoComics.GetImageUrl(const ADate: TDateTime): string;
+function PosEx(const SubStr, S: string; Offset: Integer = 1): Integer;
 var
-  URL: string;
-  Response: TStringStream;
-  ComicHTML, ComicImg: string;
+  I, Len, LenSubStr: Integer;
 begin
-  URL := Format('https://%s/%s/%s', [BASE_URL, FEndpoint, FormatDate(ADate)]);
-  Response := TStringStream.Create;
-  try
-    //FHTTP.Get(URL, Response);
-    //ComicHTML := Response.DataString;
+  Len := Length(S);
+  LenSubStr := Length(SubStr);
+  Result := 0;
+  if (Offset > Len) or (LenSubStr = 0) then
+    Exit;
+  for I := Offset to Len - LenSubStr + 1 do
+  begin
+    if Copy(S, I, LenSubStr) = SubStr then
+    begin
+      Result := I;
+      Exit;
+    end;
+  end;
+end;
 
-    // Parse HTML to get the image URL (simplified)
-    // You need to implement proper HTML parsing here
-    ComicImg := 'https://assets.amuniversal.com/a78cb7501469013d5bc5005056a9545d'; // temporarily
-    Result := ComicImg;
+function ExtractImageUrlFromHTML(const HTML: string): string;
+var
+  MetaTagStart, ContentStart, ContentEnd: Integer;
+  MetaTag, ImageUrl: string;
+begin
+  // Find the <meta property="og:image" ...> tag
+  MetaTagStart := Pos('<meta property="og:image"', HTML);
+  if MetaTagStart = 0 then
+    Exit('');
+
+  // Find the content attribute within the <meta property="og:image" ...> tag
+  ContentStart := PosEx('content="', HTML, MetaTagStart);
+  if ContentStart = 0 then
+    Exit('');
+  ContentStart := ContentStart + Length('content="');
+
+  // Find the end of the content attribute
+  ContentEnd := PosEx('"', HTML, ContentStart);
+  if ContentEnd = 0 then
+    Exit('');
+
+  // Extract the image URL
+  ImageUrl := Copy(HTML, ContentStart, ContentEnd - ContentStart);
+
+  Result := ImageUrl;
+end;
+
+
+function TGoComics.GetImageUrl(const ADate: TDateTime; out FileName: string; out ContentType: string): TMemoryStream;
+var
+  URL, formattedDate, ComicImg, ResponseStr: string;
+  Response: TStringStream;
+  ResponseFile: TextFile;
+begin
+  formattedDate := FormatDate(ADate);
+  URL := Format('%s/%s/%s', [BASE_URL, FEndpoint, formattedDate]);
+  Response := TStringStream.Create('');
+  try
+    FHTTP.Request.UserAgent := 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36';
+    FHTTP.HandleRedirects := True;
+
+    FHTTP.Get(URL, Response);
+    ResponseStr := Response.DataString;  // Convert the stream to a string for parsing
+
+    // Save ResponseStr to a file for debugging
+    AssignFile(ResponseFile, 'ResponseStr.html');
+    Rewrite(ResponseFile);
+    try
+      Write(ResponseFile, ResponseStr);
+    finally
+      CloseFile(ResponseFile);
+    end;
+
+    ComicImg := ExtractImageUrlFromHTML(ResponseStr);
+
+    if ComicImg = '' then
+      raise Exception.Create('Comic image URL not found.');
+
+    FileName := ExtractFileName(ComicImg);
+
+    // Prepare for the image download
+    Response.Clear;
+    FHTTP.Get(ComicImg, Response);
+
+    // Ensure the response is an image
+    if not AnsiStartsStr('image/', FHTTP.Response.ContentType) then
+      raise Exception.Create('Downloaded content is not an image.');
+
+    ContentType := FHTTP.Response.ContentType;
+    Result := TMemoryStream.Create;
+    Response.Position := 0;
+    Result.CopyFrom(Response, Response.Size);
+    Result.Position := 0;
   finally
     Response.Free;
   end;
 end;
 
+
+
+
 function TGoComics.FormatDate(const ADate: TDateTime): string;
 begin
-  Result := FormatDateTime('yyyy/mm/dd', ADate);
+  // Ensure to use 'yyyy/mm/dd' format
+  Result := FormatDateTime('yyyy"/"mm"/"dd', ADate);
 end;
 
 function TGoComics.GetJSONData(const URL: string): TJSONObject;
@@ -137,21 +230,9 @@ begin
   FHTTP.IOHandler := FSSLHandler;
   FHTTP.HandleRedirects := True;
 
-
-
-  // Load OpenSSL libraries
-  if not IdSSLOpenSSL.LoadOpenSSLLibrary then
-    raise Exception.Create('Could not load OpenSSL libraries');
-
-
-  //IdSSLOpenSSLHeaders.Load;
-
   // Set SSL options
-  //FSSLHandler.SSLOptions.Method := sslvSSLv3;
-  //FSSLHandler.SSLOptions.Method := sslvTLSv1_1;
-//  FSSLHandler.SSLOptions.SSLVersions := [sslvSSLv3, sslvTLSv1_1, sslvTLSv1_2];
+  FSSLHandler.SSLOptions.Method := sslvTLSv1_1;
   FSSLHandler.SSLOptions.Mode := sslmClient;
-
 
   // Load endpoint data from JSON
   JSONData := GetJSONData('/tmp/endpoints.json'); // Adjust path as necessary
@@ -176,25 +257,38 @@ begin
   inherited Destroy;
 end;
 
-procedure TGoComics.DownloadComic(const ADate: TDateTime; const APath: string);
+procedure TGoComics.DownloadComic(const ADate: TDateTime; const APath: string; out FullFilePath: string);
 var
-  ImageURL, FilePath: string;
+  ImageStream: TMemoryStream;
+  FilePath, FileName, ContentType, Extension: string;
   FileStream: TFileStream;
 begin
   if ADate < FStartDate then
     raise EInvalidDateError.CreateFmt('Search for dates after %s. Your input: %s',
       [DateToStr(FStartDate), DateToStr(ADate)]);
 
-  ImageURL := GetImageUrl(ADate);
-  //FilePath := IncludeTrailingPathDelimiter(APath) + FEndpoint + '.png';
-  FilePath := APath;
-  FileStream := TFileStream.Create(FilePath, fmCreate);
+  ImageStream := GetImageUrl(ADate, FileName, ContentType);
+
+  if ContentType = 'image/gif' then
+    Extension := '.gif'
+  else if ContentType = 'image/jpeg' then
+    Extension := '.jpg'
+  else if ContentType = 'image/png' then
+    Extension := '.png'
+  else
+    Extension := ''; // Default or raise an error for unsupported types
+
+  FullFilePath := IncludeTrailingPathDelimiter(APath) + ChangeFileExt(FileName, Extension);
+  FileStream := TFileStream.Create(FullFilePath, fmCreate);
   try
-    FHTTP.Get(ImageURL, FileStream);
+    ImageStream.Position := 0;
+    FileStream.CopyFrom(ImageStream, ImageStream.Size);
   finally
     FileStream.Free;
+    ImageStream.Free;
   end;
 end;
+
 
 procedure TGoComics.ShowComic(const ADate: TDateTime);
 begin
@@ -222,9 +316,5 @@ end;
 
 initialization
 
-
-
-
-
-  //LoadOpenSSLLibrary;
 end.
+

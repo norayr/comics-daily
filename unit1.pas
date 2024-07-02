@@ -6,9 +6,7 @@ interface
 
 uses
   Classes, SysUtils, Forms, Controls, Graphics, Dialogs, StdCtrls, ExtCtrls, IdHTTP,
-  IdSSLOpenSSL, IdCompressorZLib, GoComicsAPI;
-
-
+  IdSSLOpenSSL, IdCompressorZLib, GoComicsAPI, FPImage, LazFileUtils, IntfGraphics {LazIntfImage};
 
 type
 
@@ -38,6 +36,45 @@ implementation
 
 { TForm1 }
 
+procedure TForm1.Button1Click(Sender: TObject);
+var
+  GoComics: TGoComics;
+  ComicDate: TDateTime;
+  DirPath, FullFilePath: string;
+begin
+  Memo1.Lines.Add('Starting comic download...');
+  try
+    GoComics := TGoComics.Create('calvinandhobbes');
+    try
+      ComicDate := Now;  // or specify a specific date like EncodeDate(2024, 1, 1);
+      //ComicDate := EncodeDate(2024, 6, 1);
+      DirPath := IncludeTrailingPathDelimiter(GetComicsDailyDir);
+      GoComics.DownloadComic(ComicDate, DirPath, FullFilePath);
+      Memo1.Lines.Add('Comic downloaded successfully!');
+      ShowDownloadedComic(FullFilePath);
+    finally
+      GoComics.Free;
+    end;
+  except
+    on E: Exception do
+      Memo1.Lines.Add('Error: ' + E.Message);
+  end;
+end;
+
+
+procedure TForm1.ShowDownloadedComic(const FilePath: string);
+begin
+  if FileExists(FilePath) then
+  begin
+    Image1.Picture.LoadFromFile(FilePath);
+    Memo1.Lines.Add('Comic displayed successfully!');
+  end
+  else
+  begin
+    Memo1.Lines.Add('Error: File not found - ' + FilePath);
+  end;
+end;
+
 function TForm1.GetComicsDailyDir: string;
 var
   HomeDir: string;
@@ -51,42 +88,6 @@ begin
   if not DirectoryExists(Result) then
     if not CreateDir(Result) then
       raise Exception.Create('Could not create comics_daily directory.');
-end;
-
-procedure TForm1.Button1Click(Sender: TObject);
-var
-  GoComics: TGoComics;
-  ComicDate: TDateTime;
-  FilePath: string;
-begin
-  Memo1.Lines.Add('Starting comic download...');
-  try
-    GoComics := TGoComics.Create('calvinandhobbes');
-    try
-      ComicDate := Now;  // or specify a specific date like EncodeDate(2024, 1, 1);
-      FilePath := IncludeTrailingPathDelimiter(GetComicsDailyDir) + 'calvinandhobbes.png';
-      GoComics.DownloadComic(ComicDate, FilePath);
-      Memo1.Lines.Add('Comic downloaded successfully!');
-      ShowDownloadedComic(FilePath);
-    finally
-      GoComics.Free;
-    end;
-  except
-    on E: Exception do
-      Memo1.Lines.Add('Error: ' + E.Message);
-  end;
-end;
-procedure TForm1.ShowDownloadedComic(const FilePath: string);
-begin
-  if FileExists(FilePath) then
-  begin
-    Image1.Picture.LoadFromFile(FilePath);
-    Memo1.Lines.Add('Comic displayed successfully!');
-  end
-  else
-  begin
-    Memo1.Lines.Add('Error: File not found - ' + FilePath);
-  end;
 end;
 
 end.
