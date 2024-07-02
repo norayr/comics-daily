@@ -258,9 +258,6 @@ begin
 end;
 
 procedure TForm1.ResizeImage;
-var
-  Scale: Double;
-  NewWidth, NewHeight: Integer;
 begin
   if Assigned(FComicStream) and (FComicStream.Size > 0) then
   begin
