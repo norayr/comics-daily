@@ -9,7 +9,7 @@
         <IsPartOfProject Value="True"/>
         <EditorIndex Value="-1"/>
         <CursorPos X="24" Y="13"/>
-        <UsageCount Value="43"/>
+        <UsageCount Value="45"/>
       </Unit>
       <Unit>
         <Filename Value="unit1.pas"/>
@@ -18,9 +18,8 @@
         <HasResources Value="True"/>
         <ResourceBaseClass Value="Form"/>
         <UnitName Value="Unit1"/>
-        <TopLine Value="24"/>
-        <CursorPos X="54" Y="48"/>
-        <UsageCount Value="43"/>
+        <CursorPos Y="11"/>
+        <UsageCount Value="45"/>
         <Loaded Value="True"/>
         <LoadedDesigner Value="True"/>
       </Unit>
@@ -30,18 +29,18 @@
         <UnitName Value="GoComicsAPI"/>
         <IsVisibleTab Value="True"/>
         <EditorIndex Value="1"/>
-        <TopLine Value="298"/>
-        <CursorPos Y="337"/>
-        <UsageCount Value="43"/>
+        <TopLine Value="371"/>
+        <CursorPos X="19" Y="394"/>
+        <UsageCount Value="45"/>
         <Loaded Value="True"/>
       </Unit>
       <Unit>
         <Filename Value="../../laz/components-3.4/Indy/Lib/Protocols/IdHTTP.pas"/>
-        <EditorIndex Value="2"/>
+        <EditorIndex Value="-1"/>
         <TopLine Value="2840"/>
         <CursorPos Y="2859"/>
         <UsageCount Value="21"/>
-        <Loaded Value="True"/>
+        <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit>
       <Unit>
         <Filename Value="../../laz/components-3.4/Indy/Lib/Protocols/IdSSLOpenSSL.pas"/>
@@ -109,131 +108,138 @@
       <Unit>
         <Filename Value="../../laz/lazarus-3.4/lcl/include/control.inc"/>
         <EditorIndex Value="-1"/>
-        <TopLine Value="2957"/>
-        <CursorPos Y="2976"/>
+        <TopLine Value="3988"/>
+        <CursorPos Y="4009"/>
+        <UsageCount Value="10"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../../laz/lazarus-3.4/lcl/include/picture.inc"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="594"/>
+        <CursorPos Y="614"/>
         <UsageCount Value="10"/>
       </Unit>
     </Units>
     <JumpHistory HistoryIndex="29">
       <Position>
         <Filename Value="gocomicsapi.pas"/>
-        <Caret Line="192" Column="5" TopLine="154"/>
+        <Caret Line="231" Column="36" TopLine="199"/>
       </Position>
       <Position>
         <Filename Value="gocomicsapi.pas"/>
-        <Caret Line="191" TopLine="152"/>
+        <Caret Line="239" Column="34" TopLine="207"/>
       </Position>
       <Position>
         <Filename Value="gocomicsapi.pas"/>
-        <Caret Line="169" Column="5" TopLine="167"/>
+        <Caret Line="4" Column="7"/>
+      </Position>
+      <Position>
+        <Filename Value="gocomicsapi.pas"/>
+        <Caret Line="291" Column="16" TopLine="282"/>
       </Position>
       <Position>
         <Filename Value="unit1.pas"/>
-        <Caret Line="75" TopLine="36"/>
-      </Position>
-      <Position>
-        <Filename Value="gocomicsapi.pas"/>
-        <Caret Line="184" Column="5" TopLine="146"/>
-      </Position>
-      <Position>
-        <Filename Value="gocomicsapi.pas"/>
-        <Caret Line="133" Column="5" TopLine="103"/>
-      </Position>
-      <Position>
-        <Filename Value="gocomicsapi.pas"/>
-        <Caret Line="138" TopLine="106"/>
-      </Position>
-      <Position>
-        <Filename Value="gocomicsapi.pas"/>
-        <Caret Line="122" TopLine="109"/>
-      </Position>
-      <Position>
-        <Filename Value="gocomicsapi.pas"/>
-        <Caret Line="8" Column="102"/>
-      </Position>
-      <Position>
-        <Filename Value="gocomicsapi.pas"/>
-        <Caret Line="165" Column="5" TopLine="126"/>
-      </Position>
-      <Position>
-        <Filename Value="gocomicsapi.pas"/>
-        <Caret Line="126" Column="62" TopLine="94"/>
-      </Position>
-      <Position>
-        <Filename Value="gocomicsapi.pas"/>
-        <Caret Line="348" TopLine="309"/>
-      </Position>
-      <Position>
-        <Filename Value="gocomicsapi.pas"/>
-        <Caret Line="37" Column="5" TopLine="17"/>
+        <Caret Line="108" TopLine="69"/>
       </Position>
       <Position>
         <Filename Value="unit1.pas"/>
-        <Caret Line="80" TopLine="60"/>
+        <Caret Line="109" TopLine="70"/>
       </Position>
       <Position>
         <Filename Value="unit1.pas"/>
-        <Caret Line="82" TopLine="60"/>
+        <Caret Line="47" Column="3" TopLine="41"/>
       </Position>
       <Position>
         <Filename Value="unit1.pas"/>
-        <Caret Line="83" TopLine="60"/>
+        <Caret Line="81" Column="3" TopLine="76"/>
+      </Position>
+      <Position>
+        <Filename Value="gocomicsapi.pas"/>
+        <Caret Line="234" TopLine="195"/>
       </Position>
       <Position>
         <Filename Value="unit1.pas"/>
-        <Caret Line="89" TopLine="60"/>
+        <Caret Line="57" Column="2" TopLine="7"/>
       </Position>
       <Position>
         <Filename Value="unit1.pas"/>
-        <Caret Line="68" TopLine="61"/>
+        <Caret Line="61" Column="69" TopLine="50"/>
       </Position>
       <Position>
         <Filename Value="unit1.pas"/>
-        <Caret Line="80" TopLine="24"/>
+        <Caret Line="20" Column="47"/>
       </Position>
       <Position>
         <Filename Value="unit1.pas"/>
-        <Caret Line="48" Column="53" TopLine="24"/>
+        <Caret Line="8" Column="14"/>
       </Position>
       <Position>
         <Filename Value="gocomicsapi.pas"/>
-        <Caret Line="5" Column="12"/>
+        <Caret Line="6" Column="24"/>
       </Position>
       <Position>
         <Filename Value="gocomicsapi.pas"/>
-        <Caret Line="339"/>
+        <Caret Line="8" Column="48"/>
       </Position>
       <Position>
         <Filename Value="gocomicsapi.pas"/>
-        <Caret Line="202" Column="14" TopLine="182"/>
+        <Caret Line="11" Column="19"/>
       </Position>
       <Position>
         <Filename Value="gocomicsapi.pas"/>
-        <Caret Line="159" TopLine="156"/>
+        <Caret Line="12" Column="26"/>
       </Position>
       <Position>
         <Filename Value="gocomicsapi.pas"/>
-        <Caret Line="36" Column="4" TopLine="16"/>
+        <Caret Line="30" Column="9"/>
+      </Position>
+      <Position>
+        <Filename Value="unit1.pas"/>
+        <Caret Line="7" Column="39" TopLine="7"/>
       </Position>
       <Position>
         <Filename Value="gocomicsapi.pas"/>
-        <Caret Line="8" Column="72"/>
+        <Caret Line="358" TopLine="321"/>
       </Position>
       <Position>
         <Filename Value="gocomicsapi.pas"/>
-        <Caret Line="238" TopLine="199"/>
+        <Caret Line="9" Column="55"/>
+      </Position>
+      <Position>
+        <Filename Value="unit1.pas"/>
+        <Caret Line="11" Column="8" TopLine="7"/>
+      </Position>
+      <Position>
+        <Filename Value="unit1.pas"/>
+        <Caret Line="122" TopLine="83"/>
+      </Position>
+      <Position>
+        <Filename Value="unit1.pas"/>
+        <Caret Line="83" Column="61" TopLine="83"/>
+      </Position>
+      <Position>
+        <Filename Value="unit1.pas"/>
+        <Caret Line="123" TopLine="84"/>
       </Position>
       <Position>
         <Filename Value="gocomicsapi.pas"/>
-        <Caret Line="164" Column="3" TopLine="144"/>
+        <Caret Line="184" TopLine="145"/>
       </Position>
       <Position>
         <Filename Value="gocomicsapi.pas"/>
-        <Caret Line="241" Column="16" TopLine="202"/>
+        <Caret Line="248" Column="30" TopLine="221"/>
+      </Position>
+      <Position>
+        <Filename Value="unit1.pas"/>
+        <Caret Line="49" Column="5" TopLine="36"/>
       </Position>
       <Position>
         <Filename Value="gocomicsapi.pas"/>
-        <Caret Line="180" Column="57" TopLine="159"/>
+        <Caret Line="271" Column="5" TopLine="242"/>
+      </Position>
+      <Position>
+        <Filename Value="unit1.pas"/>
+        <Caret Line="92" Column="10" TopLine="89"/>
       </Position>
     </JumpHistory>
     <RunParams>

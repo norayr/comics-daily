@@ -5,11 +5,13 @@ unit GoComicsAPI;
 interface
 
 uses
-  SysUtils, Classes, fpjson, jsonparser, fphttpclient, opensslsockets, LazFileUtils, strutils, fgl;
+  SysUtils, Classes, fpjson, jsonparser, fphttpclient, opensslsockets, LazFileUtils, strutils, fgl,
+  Graphics, FPReadJPEG, FPReadPNG, FPReadGIF, FPImage, LCLIntf;
 
 const
   BASE_URL = 'https://www.gocomics.com';
   BASE_RANDOM_URL = 'https://www.gocomics.com/random';
+  END_POINTS = 'endpoints.json';
 
 type
   EInvalidDateError = class(Exception);
@@ -29,13 +31,13 @@ type
     HTTPClient: TFPHTTPClient;
     function GetStartDate: TDateTime;
     function GetTitle: string;
-    function GetImageUrl(const ADate: TDateTime; out FileName: string; out ContentType: string): TMemoryStream;
     function FormatDate(const ADate: TDateTime): string;
     function GetJSONData(const URL: string): TJSONObject;
     function ParseDate(const ADateStr: string): TDateTime;
   public
     constructor Create(const AEndpoint: string);
     destructor Destroy; override;
+    function GetImageUrl(const ADate: TDateTime; out FileName: string; out ContentType: string): TMemoryStream;
     procedure DownloadComic(const ADate: TDateTime; const APath: string; out FullFilePath: string);
     procedure ShowComic(const ADate: TDateTime);
     function RandomDate: TDateTime;
@@ -129,7 +131,32 @@ begin
     HttpClient.Free;
   end;
 end;
-
+{
+function ExtractImageUrlFromHtml(const Html: string): string;
+var
+  ImgPos, SrcPos: Integer;
+  ImgTag, SrcUrl: string;
+begin
+  Result := '';
+  ImgPos := Pos('<img', Html);
+  while ImgPos > 0 do
+  begin
+    ImgTag := Copy(Html, ImgPos, PosEx('>', Html, ImgPos) - ImgPos + 1);
+    SrcPos := Pos('src="', ImgTag);
+    if SrcPos > 0 then
+    begin
+      SrcPos := SrcPos + Length('src="');
+      SrcUrl := Copy(ImgTag, SrcPos, PosEx('"', ImgTag, SrcPos) - SrcPos);
+      if Pos('assets.amuniversal.com', SrcUrl) > 0 then
+      begin
+        Result := SrcUrl;
+        Break;
+      end;
+    end;
+    ImgPos := PosEx('<img', Html, ImgPos + Length('<img'));
+  end;
+end;
+}
 function ExtractImageUrlFromHtml(const Html: string): string;
 var
   ImgPos, SrcPos: Integer;
@@ -155,6 +182,7 @@ begin
   end;
 end;
 
+{
 function TGoComics.GetImageUrl(const ADate: TDateTime; out FileName: string; out ContentType: string): TMemoryStream;
 var
   URL, formattedDate, ComicImg, ResponseStr: string;
@@ -211,6 +239,49 @@ begin
     Response.Free;
   end;
 end;
+}
+
+function TGoComics.GetImageUrl(const ADate: TDateTime; out FileName: string; out ContentType: string): TMemoryStream;
+var
+  URL, formattedDate, ComicImg: string;
+  Response: TStringStream;
+  ResponseFile: TextFile;
+begin
+  formattedDate := FormatDate(ADate);
+  URL := Format('%s/%s/%s', [BASE_URL, FEndpoint, formattedDate]);
+  Response := TStringStream.Create('');
+  Result := TMemoryStream.Create;
+  try
+    HTTPClient.AllowRedirect := True;
+    HTTPClient.Get(URL, Response); // Get the HTML page
+    ComicImg := ExtractImageUrlFromHtml(Response.DataString); // Extract the image URL from HTML
+
+    // Debug log
+    AssignFile(ResponseFile, 'ResponseStr.html');
+    Rewrite(ResponseFile);
+    try
+      Write(ResponseFile, Response.DataString);
+    finally
+      CloseFile(ResponseFile);
+    end;
+
+    if ComicImg = '' then
+      raise Exception.Create('Comic image URL not found in the HTML response.');
+
+  //  Memo1.Lines.Add('Comic Image URL: ' + ComicImg); // Log the extracted image URL
+
+    // Download the comic image
+    HTTPClient.Get(ComicImg, Result); // Get the image directly into the stream
+    Result.Position := 0;
+    ContentType := HTTPClient.ResponseHeaders.Values['Content-Type']; // Extract content type
+    FileName := ExtractFileName(ComicImg); // Use the extracted file name
+  except
+    Result.Free;
+    raise;
+  end;
+end;
+
+
 
 function TGoComics.FormatDate(const ADate: TDateTime): string;
 begin
@@ -254,7 +325,7 @@ begin
   HTTPClient := TFPHTTPClient.Create(nil);
 
   // Load endpoint data from JSON
-  JSONData := GetJSONData('/tmp/endpoints.json'); // Adjust path as necessary
+  JSONData := GetJSONData(END_POINTS);
   try
     if JSONData.Find(FEndpoint) <> nil then
     begin
@@ -332,6 +403,8 @@ begin
 end;
 
 initialization
-
+  ImageHandlers.RegisterImageReader('JPEG Image', 'jpg', TFPReaderJPEG);
+  ImageHandlers.RegisterImageReader('PNG Image', 'png', TFPReaderPNG);
+  ImageHandlers.RegisterImageReader('GIF Image', 'gif', TFPReaderGIF);
 end.
 

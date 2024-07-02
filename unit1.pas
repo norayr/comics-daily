@@ -5,24 +5,29 @@ unit Unit1;
 interface
 
 uses
-  Classes, SysUtils, Forms, Controls, Graphics, Dialogs, StdCtrls, ExtCtrls, IdHTTP,
-  IdSSLOpenSSL, IdCompressorZLib, GoComicsAPI, FPImage, LazFileUtils, IntfGraphics {LazIntfImage};
+  Classes, SysUtils, Forms, Controls, Graphics, Dialogs, StdCtrls, ExtCtrls,
+  FPImage, FPReadJPEG, FPReadPNG, FPReadGIF,
+  LazFileUtils, IntfGraphics,
+  GoComicsAPI;
 
 type
 
   { TForm1 }
 
   TForm1 = class(TForm)
-    Button1: TButton;
-    IdCompressorZLib1: TIdCompressorZLib;
-    IdHTTP1: TIdHTTP;
-    IdSSLIOHandlerSocketOpenSSL1: TIdSSLIOHandlerSocketOpenSSL;
+    ShowComicButton: TButton;
+    SaveComicButton: TButton;
     Memo1: TMemo;
     Image1: TImage;
-    procedure Button1Click(Sender: TObject);
+    procedure ShowComicButtonClick(Sender: TObject);
+    procedure SaveComicButtonClick(Sender: TObject);
   private
-    procedure ShowDownloadedComic(const FilePath: string);
+    FComicStream: TMemoryStream;
+    FFileName: string;
+    FContentType: string;
+    procedure LoadImageFromStream(Stream: TMemoryStream; const ContentType: string);
     function GetComicsDailyDir: string;
+    function GetFileExtension(const ContentType: string): string;
   public
 
   end;
@@ -34,59 +39,90 @@ implementation
 
 {$R *.lfm}
 
-{ TForm1 }
-
-procedure TForm1.Button1Click(Sender: TObject);
+procedure TForm1.ShowComicButtonClick(Sender: TObject);
 var
   GoComics: TGoComics;
   ComicDate: TDateTime;
-  FilePath, FullFilePath: string;
 begin
-  Memo1.Lines.Add('Starting comic download...');
+  Memo1.Lines.Add('Fetching comic...');
+  GoComics := TGoComics.Create('pearlsbeforeswine');
+  FComicStream := TMemoryStream.Create;
   try
-//    GoComics := TGoComics.Create('calvinandhobbes');
-      GoComics := TGoComics.Create('pearlsbeforeswine');
-    try
-      ComicDate := Now;  // Use today's date
-      FilePath := IncludeTrailingPathDelimiter(GetComicsDailyDir);
-      try
-        GoComics.DownloadComic(ComicDate, FilePath, FullFilePath);
-        Memo1.Lines.Add('Comic downloaded successfully!');
-        ShowDownloadedComic(FullFilePath);
-      except
-        on E: Exception do
-        begin
-          Memo1.Lines.Add('Error: ' + E.Message);
-          // Optionally, provide a fallback to the latest available comic
-          ComicDate := EncodeDate(2024, 7, 1); // Last known available date
-          Memo1.Lines.Add('Attempting to download the latest available comic...');
-          GoComics.DownloadComic(ComicDate, FilePath, FullFilePath);
-          Memo1.Lines.Add('Latest available comic downloaded successfully!');
-          ShowDownloadedComic(FullFilePath);
-        end;
-      end;
-    finally
-      GoComics.Free;
-    end;
-  except
-    on E: Exception do
-      Memo1.Lines.Add('Error: ' + E.Message);
+    ComicDate := Now;
+    FComicStream := GoComics.GetImageUrl(ComicDate, FFileName, FContentType);
+    Memo1.Lines.Add('Content Type: ' + FContentType); // Log content type for debugging
+    if Pos('text/html', FContentType) > 0 then
+      raise Exception.Create('Received HTML instead of image. Please check the image URL.');
+
+    LoadImageFromStream(FComicStream, FContentType);
+    Memo1.Lines.Add('Comic displayed successfully!');
+    SaveComicButton.Enabled := True;
+  finally
+    GoComics.Free;
   end;
 end;
 
-
-
-procedure TForm1.ShowDownloadedComic(const FilePath: string);
+procedure TForm1.SaveComicButtonClick(Sender: TObject);
+var
+  FileStream: TFileStream;
+  FullFilePath: string;
+  Extension: string;
 begin
-  if FileExists(FilePath) then
+  if Assigned(FComicStream) and (FComicStream.Size > 0) then
   begin
-    Image1.Picture.LoadFromFile(FilePath);
-    Memo1.Lines.Add('Comic displayed successfully!');
+    Extension := GetFileExtension(FContentType);
+    FullFilePath := IncludeTrailingPathDelimiter(GetComicsDailyDir) + ChangeFileExt(FFileName, Extension);
+    FileStream := TFileStream.Create(FullFilePath, fmCreate);
+    try
+      FComicStream.Position := 0;
+      FileStream.CopyFrom(FComicStream, FComicStream.Size);
+      Memo1.Lines.Add('Comic saved successfully as ' + FullFilePath);
+    finally
+      FileStream.Free;
+    end;
   end
   else
-  begin
-    Memo1.Lines.Add('Error: File not found - ' + FilePath);
+    Memo1.Lines.Add('No comic to save.');
+end;
+
+procedure TForm1.LoadImageFromStream(Stream: TMemoryStream; const ContentType: string);
+var
+  Img: TFPCustomImage;
+  Reader: TFPCustomImageReader;
+begin
+  Img := TFPMemoryImage.Create(0, 0);
+  try
+    if Pos('jpeg', ContentType) > 0 then
+      Reader := TFPReaderJPEG.Create
+    else if Pos('png', ContentType) > 0 then
+      Reader := TFPReaderPNG.Create
+    else if Pos('gif', ContentType) > 0 then
+      Reader := TFPReaderGIF.Create
+    else
+      raise Exception.Create('Unsupported image format: ' + ContentType); // Improved error message
+
+    try
+      Stream.Position := 0;
+      Img.LoadFromStream(Stream, Reader);
+      Image1.Picture.Bitmap.Assign(Img);
+    finally
+      Reader.Free;
+    end;
+  finally
+    Img.Free;
   end;
+end;
+
+function TForm1.GetFileExtension(const ContentType: string): string;
+begin
+  if Pos('image/gif', ContentType) > 0 then
+    Result := '.gif'
+  else if Pos('image/jpeg', ContentType) > 0 then
+    Result := '.jpg'
+  else if Pos('image/png', ContentType) > 0 then
+    Result := '.png'
+  else
+    Result := ''; // Default or raise an error for unsupported types
 end;
 
 function TForm1.GetComicsDailyDir: string;

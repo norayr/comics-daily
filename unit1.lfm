@@ -17,14 +17,14 @@ object Form1: TForm1
     )
     TabOrder = 0
   end
-  object Button1: TButton
-    Left = 689
+  object ShowComicButton: TButton
+    Left = 760
     Height = 25
-    Top = 354
-    Width = 75
-    Caption = 'Button1'
+    Top = 344
+    Width = 211
+    Caption = 'show'
     TabOrder = 1
-    OnClick = Button1Click
+    OnClick = ShowComicButtonClick
   end
   object Image1: TImage
     Left = 16
@@ -32,34 +32,13 @@ object Form1: TForm1
     Top = 376
     Width = 658
   end
-  object IdHTTP1: TIdHTTP
-    ProxyParams.BasicAuthentication = False
-    ProxyParams.ProxyPort = 0
-    Request.ContentLength = -1
-    Request.ContentRangeEnd = -1
-    Request.ContentRangeStart = -1
-    Request.ContentRangeInstanceLength = -1
-    Request.Accept = 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
-    Request.BasicAuthentication = False
-    Request.UserAgent = 'Mozilla/3.0 (compatible; Indy Library)'
-    Request.Ranges.Units = 'bytes'
-    Request.Ranges = <>
-    HTTPOptions = [hoForceEncodeParams]
-    Left = 776
-    Top = 24
-  end
-  object IdSSLIOHandlerSocketOpenSSL1: TIdSSLIOHandlerSocketOpenSSL
-    MaxLineAction = maException
-    Port = 0
-    DefaultPort = 0
-    SSLOptions.Mode = sslmUnassigned
-    SSLOptions.VerifyMode = []
-    SSLOptions.VerifyDepth = 0
-    Left = 776
-    Top = 200
-  end
-  object IdCompressorZLib1: TIdCompressorZLib
-    Left = 776
-    Top = 104
+  object SaveComicButton: TButton
+    Left = 760
+    Height = 25
+    Top = 392
+    Width = 211
+    Caption = 'download'
+    TabOrder = 2
+    OnClick = SaveComicButtonClick
   end
 end
