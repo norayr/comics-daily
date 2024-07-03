@@ -39,6 +39,7 @@ type
     function GetComicsDailyDir: string;
     function GetFileExtension(const ContentType: string): string;
     procedure LoadComic(const Comic: string; const ComicDate: TDateTime);
+    procedure LoadLatestComic(const Comic: string);
     procedure UpdateButtonStates;
     procedure UpdateLayout;
   public
@@ -78,7 +79,7 @@ begin
   Memo1.Visible := False;
 
   FCurrentComic := ComboBox1.Text; // Initialize the current comic
-  FCurrentDate := Now; // Set the current date to today
+  LoadLatestComic(FCurrentComic); // Load the latest comic on startup
   UpdateButtonStates;
   UpdateLayout; // Adjust the layout based on the initial form size
 end;
@@ -92,8 +93,7 @@ end;
 procedure TForm1.ShowComicButtonClick(Sender: TObject);
 begin
   FCurrentComic := ComboBox1.Text;
-  FCurrentDate := Now; // Reset to today when a new comic is selected
-  LoadComic(FCurrentComic, FCurrentDate);
+  LoadLatestComic(FCurrentComic);
   UpdateButtonStates;
 end;
 
@@ -111,6 +111,34 @@ begin
     FCurrentDate := FCurrentDate + 1;
     LoadComic(FCurrentComic, FCurrentDate);
     UpdateButtonStates;
+  end;
+end;
+
+procedure TForm1.LoadLatestComic(const Comic: string);
+var
+  GoComics: TGoComics;
+  LatestComicUrl, DateStr: string;
+  ComicDate: TDateTime;
+begin
+  if Comic = '' then
+  begin
+    Memo1.Lines.Add('No comic selected.');
+    Exit;
+  end;
+
+  Memo1.Lines.Add('Fetching the latest comic for ' + Comic + '...');
+  try
+    GoComics := TGoComics.Create(Comic);
+    LatestComicUrl := GoComics.GetLatestComicUrl;
+    DateStr := Copy(LatestComicUrl, Length(LatestComicUrl) - 9, 10);
+    ComicDate := EncodeDate(StrToInt(Copy(DateStr, 1, 4)),
+                           StrToInt(Copy(DateStr, 6, 2)),
+                           StrToInt(Copy(DateStr, 9, 2)));
+    FCurrentDate := ComicDate;
+    LoadComic(Comic, ComicDate);
+    UpdateButtonStates;
+  finally
+    GoComics.Free;
   end;
 end;
 

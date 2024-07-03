@@ -5,21 +5,15 @@ unit GoComicsAPI;
 interface
 
 uses
-  SysUtils, Classes, fpjson, jsonparser, fphttpclient, opensslsockets, LazFileUtils, strutils, fgl,
-  Graphics, FPReadJPEG, FPReadPNG, FPReadGIF, FPImage, LCLIntf;
+  SysUtils, Classes, fphttpclient, opensslsockets, LazFileUtils, strutils,
+  FPImage, FPReadJPEG, FPReadPNG, FPReadGIF;
 
 const
   BASE_URL = 'https://www.gocomics.com';
-  BASE_RANDOM_URL = 'https://www.gocomics.com/random';
-  END_POINTS = 'endpoints.json';
 
 type
   EInvalidDateError = class(Exception);
   EInvalidEndpointError = class(Exception);
-
-  TStringListHelper = class helper for TStringList
-    function FindURL(const Domain: string): string;
-  end;
 
   { TGoComics }
 
@@ -32,63 +26,63 @@ type
     function GetStartDate: TDateTime;
     function GetTitle: string;
     function FormatDate(const ADate: TDateTime): string;
-    function GetJSONData(const URL: string): TJSONObject;
-    function ParseDate(const ADateStr: string): TDateTime;
+    function ExtractImageUrlFromHtml(const Html: string): string;
+    function ExtractLatestComicUrlFromHtml(const Html: string): string;
   public
     constructor Create(const AEndpoint: string);
     destructor Destroy; override;
     function GetImageUrl(const ADate: TDateTime; out FileName: string; out ContentType: string): TMemoryStream;
-    procedure DownloadComic(const ADate: TDateTime; const APath: string; out FullFilePath: string);
-    procedure ShowComic(const ADate: TDateTime);
-    function RandomDate: TDateTime;
+    function GetLatestComicUrl: string;
     property StartDate: TDateTime read GetStartDate;
     property Title: string read GetTitle;
   end;
 
 implementation
 
-function TStringListHelper.FindURL(const Domain: string): string;
-var
-  i: Integer;
-begin
-  for i := 0 to Count - 1 do
-    if Pos(Domain, Strings[i]) > 0 then
-      Exit(Strings[i]);
-  Result := '';
-end;
-
 { TGoComics }
 
-function ReadStreamToString(AStream: TStream): string;
+function TGoComics.ExtractImageUrlFromHtml(const Html: string): string;
 var
-  StringStream: TStringStream;
+  ImgPos, SrcPos: Integer;
+  ImgTag, SrcUrl: string;
 begin
-  StringStream := TStringStream.Create('');
-  try
-    StringStream.CopyFrom(AStream, AStream.Size);
-    Result := StringStream.DataString;
-  finally
-    StringStream.Free;
+  Result := '';
+  ImgPos := Pos('<img', Html);
+  while ImgPos > 0 do
+  begin
+    ImgTag := Copy(Html, ImgPos, PosEx('>', Html, ImgPos) - ImgPos + 1);
+    SrcPos := Pos('src="', ImgTag);
+    if SrcPos > 0 then
+    begin
+      SrcPos := SrcPos + Length('src="');
+      SrcUrl := Copy(ImgTag, SrcPos, PosEx('"', ImgTag, SrcPos) - SrcPos);
+      if Pos('assets.amuniversal.com', SrcUrl) > 0 then
+      begin
+        Result := SrcUrl;
+        Break;
+      end;
+    end;
+    ImgPos := PosEx('<img', Html, ImgPos + Length('<img'));
   end;
 end;
 
-function ReadFileToString(const FileName: string): string;
+function TGoComics.ExtractLatestComicUrlFromHtml(const Html: string): string;
 var
-  FileStream: TFileStream;
-  StringStream: TStringStream;
+  Pos1, Pos2: Integer;
 begin
-  FileStream := TFileStream.Create(FileName, fmOpenRead or fmShareDenyWrite);
-  try
-    StringStream := TStringStream.Create('');
-    try
-      StringStream.CopyFrom(FileStream, FileStream.Size);
-      Result := StringStream.DataString;
-    finally
-      StringStream.Free;
+  Pos1 := Pos('<div class="gc-deck gc-deck--cta-0">', Html);
+  if Pos1 > 0 then
+  begin
+    Pos1 := PosEx('<a class="gc-blended-link gc-blended-link--primary"', Html, Pos1);
+    if Pos1 > 0 then
+    begin
+      Pos1 := PosEx('href="', Html, Pos1) + Length('href="');
+      Pos2 := PosEx('"', Html, Pos1);
+      Result := BASE_URL + Copy(Html, Pos1, Pos2 - Pos1);
     end;
-  finally
-    FileStream.Free;
   end;
+  if Result = '' then
+    raise Exception.Create('Latest comic URL not found.');
 end;
 
 function TGoComics.GetStartDate: TDateTime;
@@ -101,151 +95,30 @@ begin
   Result := FTitle;
 end;
 
-function PosEx(const SubStr, S: string; Offset: Integer = 1): Integer;
-var
-  I, Len, LenSubStr: Integer;
+function TGoComics.FormatDate(const ADate: TDateTime): string;
 begin
-  Len := Length(S);
-  LenSubStr := Length(SubStr);
-  Result := 0;
-  if (Offset > Len) or (LenSubStr = 0) then
-    Exit;
-  for I := Offset to Len - LenSubStr + 1 do
-  begin
-    if Copy(S, I, LenSubStr) = SubStr then
-    begin
-      Result := I;
-      Exit;
-    end;
-  end;
+  Result := FormatDateTime('yyyy"/"mm"/"dd', ADate);
 end;
 
-function GetHtmlFromUrl(const Url: string): string;
-var
-  HttpClient: TFPHTTPClient;
+constructor TGoComics.Create(const AEndpoint: string);
 begin
-  HttpClient := TFPHTTPClient.Create(nil);
-  try
-    Result := HttpClient.SimpleGet(Url);
-  finally
-    HttpClient.Free;
-  end;
-end;
-{
-function ExtractImageUrlFromHtml(const Html: string): string;
-var
-  ImgPos, SrcPos: Integer;
-  ImgTag, SrcUrl: string;
-begin
-  Result := '';
-  ImgPos := Pos('<img', Html);
-  while ImgPos > 0 do
-  begin
-    ImgTag := Copy(Html, ImgPos, PosEx('>', Html, ImgPos) - ImgPos + 1);
-    SrcPos := Pos('src="', ImgTag);
-    if SrcPos > 0 then
-    begin
-      SrcPos := SrcPos + Length('src="');
-      SrcUrl := Copy(ImgTag, SrcPos, PosEx('"', ImgTag, SrcPos) - SrcPos);
-      if Pos('assets.amuniversal.com', SrcUrl) > 0 then
-      begin
-        Result := SrcUrl;
-        Break;
-      end;
-    end;
-    ImgPos := PosEx('<img', Html, ImgPos + Length('<img'));
-  end;
-end;
-}
-function ExtractImageUrlFromHtml(const Html: string): string;
-var
-  ImgPos, SrcPos: Integer;
-  ImgTag, SrcUrl: string;
-begin
-  Result := '';
-  ImgPos := Pos('<img', Html);
-  while ImgPos > 0 do
-  begin
-    ImgTag := Copy(Html, ImgPos, PosEx('>', Html, ImgPos) - ImgPos + 1);
-    SrcPos := Pos('src="', ImgTag);
-    if SrcPos > 0 then
-    begin
-      SrcPos := SrcPos + Length('src="');
-      SrcUrl := Copy(ImgTag, SrcPos, PosEx('"', ImgTag, SrcPos) - SrcPos);
-      if Pos('assets.amuniversal.com', SrcUrl) > 0 then
-      begin
-        Result := SrcUrl;
-        Break;
-      end;
-    end;
-    ImgPos := PosEx('<img', Html, ImgPos + Length('<img'));
-  end;
+  FEndpoint := AEndpoint;
+  HTTPClient := TFPHTTPClient.Create(nil);
+
+  // Simulated start date for the comic; this should be replaced with actual data if available
+  FStartDate := EncodeDate(2000, 1, 1);
 end;
 
-{
-function TGoComics.GetImageUrl(const ADate: TDateTime; out FileName: string; out ContentType: string): TMemoryStream;
-var
-  URL, formattedDate, ComicImg, ResponseStr: string;
-  Response: TStringStream;
-  ResponseFile: TextFile;
+destructor TGoComics.Destroy;
 begin
-  formattedDate := FormatDate(ADate);
-  URL := Format('%s/%s/%s', [BASE_URL, FEndpoint, formattedDate]);
-  Response := TStringStream.Create('');
-  try
-    try
-      HTTPClient.AllowRedirect := True;
-      HTTPClient.Get(URL, Response);
-      ResponseStr := Response.DataString;  // Convert the stream to a string for parsing
-
-      // Save ResponseStr to a file
-      AssignFile(ResponseFile, 'ResponseStr.html');
-      Rewrite(ResponseFile);
-      try
-        Write(ResponseFile, ResponseStr);
-      finally
-        CloseFile(ResponseFile);
-      end;
-
-      ComicImg := ExtractImageUrlFromHtml(ResponseStr);
-
-      if ComicImg = '' then
-        raise Exception.Create('Comic image URL not found.');
-
-      FileName := ExtractFileName(ComicImg);
-      ContentType := '';
-      Result := TMemoryStream.Create;
-      try
-        HTTPClient.Get(ComicImg, Result);
-        ContentType := HTTPClient.ResponseHeaders.Values['Content-Type'];
-        Result.Position := 0;
-      except
-        Result.Free;
-        raise;
-      end;
-    except
-      on E: EHTTPClient do
-      begin
-        if Pos('404', E.Message) > 0 then
-          raise Exception.Create('Comic for this date not found.');
-        raise;
-      end;
-      on E: Exception do
-      begin
-        raise;
-      end;
-    end;
-  finally
-    Response.Free;
-  end;
+  HTTPClient.Free;
+  inherited Destroy;
 end;
-}
- {
+
 function TGoComics.GetImageUrl(const ADate: TDateTime; out FileName: string; out ContentType: string): TMemoryStream;
 var
   URL, formattedDate, ComicImg: string;
   Response: TStringStream;
-  ResponseFile: TextFile;
 begin
   formattedDate := FormatDate(ADate);
   URL := Format('%s/%s/%s', [BASE_URL, FEndpoint, formattedDate]);
@@ -256,19 +129,8 @@ begin
     HTTPClient.Get(URL, Response); // Get the HTML page
     ComicImg := ExtractImageUrlFromHtml(Response.DataString); // Extract the image URL from HTML
 
-    // Debug log
-    AssignFile(ResponseFile, 'ResponseStr.html');
-    Rewrite(ResponseFile);
-    try
-      Write(ResponseFile, Response.DataString);
-    finally
-      CloseFile(ResponseFile);
-    end;
-
     if ComicImg = '' then
       raise Exception.Create('Comic image URL not found in the HTML response.');
-
-  //  Memo1.Lines.Add('Comic Image URL: ' + ComicImg); // Log the extracted image URL
 
     // Download the comic image
     HTTPClient.Get(ComicImg, Result); // Get the image directly into the stream
@@ -279,229 +141,20 @@ begin
     Result.Free;
     raise;
   end;
+  Response.Free;
 end;
-  }
-  {
-  function TGoComics.GetImageUrl(const ADate: TDateTime; out FileName: string; out ContentType: string): TMemoryStream;
+
+function TGoComics.GetLatestComicUrl: string;
 var
-  URL, formattedDate, ComicImg: string;
+  URL, ResponseStr: string;
   Response: TStringStream;
-    ResponseFile: TextFile;
 begin
-  formattedDate := FormatDate(ADate);
-  URL := Format('%s/%s/%s', [BASE_URL, FEndpoint, formattedDate]);
+  URL := Format('%s/%s', [BASE_URL, FEndpoint]);
   Response := TStringStream.Create('');
-  Result := TMemoryStream.Create;
   try
-    try
-      HTTPClient.AllowRedirect := True;
-      HTTPClient.Get(URL, Response); // Get the HTML page
-
-      // Debug log the response content
-      AssignFile(ResponseFile, 'ResponseStr.html');
-      Rewrite(ResponseFile);
-      try
-        Write(ResponseFile, Response.DataString);
-      finally
-        CloseFile(ResponseFile);
-      end;
-
-      ComicImg := ExtractImageUrlFromHtml(Response.DataString); // Extract the image URL from HTML
-
-      if ComicImg = '' then
-        raise Exception.Create('Comic image URL not found in the HTML response.');
-
-      // Download the comic image
-      HTTPClient.Get(ComicImg, Result); // Get the image directly into the stream
-      Result.Position := 0;
-      ContentType := HTTPClient.ResponseHeaders.Values['Content-Type']; // Extract content type
-      FileName := ExtractFileName(ComicImg); // Use the extracted file name
-    except
-      on E: EHTTPClient do
-      begin
-        if Pos('404', E.Message) > 0 then
-          raise Exception.Create('Comic for this date not found.');
-        raise;
-      end;
-      on E: Exception do
-      begin
-        Result.Free;
-        raise;
-      end;
-    end;
-  finally
-    Response.Free;
-  end;
-end;
-   }
-   function TGoComics.GetImageUrl(const ADate: TDateTime; out FileName: string; out ContentType: string): TMemoryStream;
-   var
-     URL, formattedDate, ComicImg: string;
-     Response: TStringStream;
-     ResponseFile: TextFile;
-   begin
-     formattedDate := FormatDate(ADate);
-     URL := Format('%s/%s/%s', [BASE_URL, FEndpoint, formattedDate]);
-     Response := TStringStream.Create('');
-     Result := TMemoryStream.Create;
-     try
-       try
-         HTTPClient.AllowRedirect := True;
-         HTTPClient.Get(URL, Response); // Get the HTML page
-
-         // Debug log the response content
-         AssignFile(ResponseFile, 'ResponseStr.html');
-         Rewrite(ResponseFile);
-         try
-           Write(ResponseFile, Response.DataString);
-         finally
-           CloseFile(ResponseFile);
-         end;
-
-         ComicImg := ExtractImageUrlFromHtml(Response.DataString); // Extract the image URL from HTML
-
-         if ComicImg = '' then
-           raise Exception.Create('Comic image URL not found in the HTML response.');
-
-         // Download the comic image
-         HTTPClient.Get(ComicImg, Result); // Get the image directly into the stream
-         Result.Position := 0;
-         ContentType := HTTPClient.ResponseHeaders.Values['Content-Type']; // Extract content type
-         FileName := ExtractFileName(ComicImg); // Use the extracted file name
-       except
-         on E: EHTTPClient do
-         begin
-           if Pos('404', E.Message) > 0 then
-             raise Exception.Create('Comic for this date not found.');
-           raise;
-         end;
-         on E: Exception do
-         begin
-           Result.Free;
-           raise;
-         end;
-       end;
-     finally
-       Response.Free;
-     end;
-   end;
-
-
-
-function TGoComics.FormatDate(const ADate: TDateTime): string;
-begin
-  // Ensure to use 'yyyy/mm/dd' format
-  Result := FormatDateTime('yyyy"/"mm"/"dd', ADate);
-end;
-
-function TGoComics.GetJSONData(const URL: string): TJSONObject;
-var
-  Response: TStringStream;
-begin
-  if Pos('http', URL) = 1 then
-  begin
-    // URL is a web resource, fetch it using HTTP
-    Response := TStringStream.Create('');
-    try
-      HTTPClient.Get(URL, Response);
-      Result := TJSONObject(GetJSON(Response.DataString));
-    finally
-      Response.Free;
-    end;
-  end
-  else
-  begin
-    // URL is a local file
-    Result := TJSONObject(GetJSON(ReadFileToString(URL)));
-  end;
-end;
-
-function TGoComics.ParseDate(const ADateStr: string): TDateTime;
-begin
-  Result := EncodeDate(StrToInt(Copy(ADateStr, 1, 4)),
-    StrToInt(Copy(ADateStr, 6, 2)), StrToInt(Copy(ADateStr, 9, 2)));
-end;
-
-constructor TGoComics.Create(const AEndpoint: string);
-var
-  JSONData, EndpointData: TJSONObject;
-begin
-  FEndpoint := AEndpoint;
-  HTTPClient := TFPHTTPClient.Create(nil);
-
-  // Load endpoint data from JSON
-  JSONData := GetJSONData(END_POINTS);
-  try
-    if JSONData.Find(FEndpoint) <> nil then
-    begin
-      EndpointData := JSONData.Objects[FEndpoint];
-      FTitle := EndpointData.Get('title', '');
-      FStartDate := ParseDate(EndpointData.Get('start_date', ''));
-    end
-    else
-      raise EInvalidEndpointError.Create('Invalid endpoint');
-  finally
-    JSONData.Free;
-  end;
-end;
-
-destructor TGoComics.Destroy;
-begin
-  HTTPClient.Free;
-  inherited Destroy;
-end;
-
-procedure TGoComics.DownloadComic(const ADate: TDateTime; const APath: string; out FullFilePath: string);
-var
-  ImageStream: TMemoryStream;
-  FilePath, FileName, ContentType, Extension: string;
-  FileStream: TFileStream;
-begin
-  if ADate < FStartDate then
-    raise EInvalidDateError.CreateFmt('Search for dates after %s. Your input: %s',
-      [DateToStr(FStartDate), DateToStr(ADate)]);
-
-  ImageStream := GetImageUrl(ADate, FileName, ContentType);
-
-  if ContentType = 'image/gif' then
-    Extension := '.gif'
-  else if ContentType = 'image/jpeg' then
-    Extension := '.jpg'
-  else if ContentType = 'image/png' then
-    Extension := '.png'
-  else
-    Extension := ''; // Default or raise an error for unsupported types
-
-  FullFilePath := IncludeTrailingPathDelimiter(APath) + ChangeFileExt(FileName, Extension);
-  FileStream := TFileStream.Create(FullFilePath, fmCreate);
-  try
-    ImageStream.Position := 0;
-    FileStream.CopyFrom(ImageStream, ImageStream.Size);
-  finally
-    FileStream.Free;
-    ImageStream.Free;
-  end;
-end;
-
-procedure TGoComics.ShowComic(const ADate: TDateTime);
-begin
-  // Implement display logic
-end;
-
-function TGoComics.RandomDate: TDateTime;
-var
-  Response: TStringStream;
-  JSONData: TJSONObject;
-begin
-  Response := TStringStream.Create;
-  try
-    HTTPClient.Get(BASE_RANDOM_URL + '/' + FEndpoint, Response);
-    JSONData := TJSONObject(GetJSON(Response.DataString));
-    try
-      Result := ParseDate(JSONData.Get('date', ''));
-    finally
-      JSONData.Free;
-    end;
+    HTTPClient.Get(URL, Response);
+    ResponseStr := Response.DataString;
+    Result := ExtractLatestComicUrlFromHtml(ResponseStr);
   finally
     Response.Free;
   end;
@@ -511,5 +164,6 @@ initialization
   ImageHandlers.RegisterImageReader('JPEG Image', 'jpg', TFPReaderJPEG);
   ImageHandlers.RegisterImageReader('PNG Image', 'png', TFPReaderPNG);
   ImageHandlers.RegisterImageReader('GIF Image', 'gif', TFPReaderGIF);
+
 end.
 
