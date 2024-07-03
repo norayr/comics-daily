@@ -9,7 +9,7 @@
         <IsPartOfProject Value="True"/>
         <EditorIndex Value="-1"/>
         <CursorPos X="24" Y="13"/>
-        <UsageCount Value="57"/>
+        <UsageCount Value="61"/>
       </Unit>
       <Unit>
         <Filename Value="unit1.pas"/>
@@ -21,7 +21,7 @@
         <IsVisibleTab Value="True"/>
         <TopLine Value="242"/>
         <CursorPos X="30" Y="260"/>
-        <UsageCount Value="57"/>
+        <UsageCount Value="61"/>
         <Loaded Value="True"/>
         <LoadedDesigner Value="True"/>
       </Unit>
@@ -32,7 +32,7 @@
         <EditorIndex Value="4"/>
         <TopLine Value="421"/>
         <CursorPos X="55" Y="425"/>
-        <UsageCount Value="57"/>
+        <UsageCount Value="61"/>
         <Loaded Value="True"/>
       </Unit>
       <Unit>
@@ -40,91 +40,90 @@
         <EditorIndex Value="-1"/>
         <TopLine Value="2840"/>
         <CursorPos Y="2859"/>
-        <UsageCount Value="20"/>
-        <DefaultSyntaxHighlighter Value="Delphi"/>
+        <UsageCount Value="19"/>
       </Unit>
       <Unit>
         <Filename Value="../../laz/components-3.4/Indy/Lib/Protocols/IdSSLOpenSSL.pas"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="2329"/>
         <CursorPos Y="2348"/>
-        <UsageCount Value="16"/>
+        <UsageCount Value="15"/>
       </Unit>
       <Unit>
         <Filename Value="/usr/lib/fpc/3.2.2/source/rtl/inc/objpash.inc"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="186"/>
         <CursorPos X="23" Y="206"/>
-        <UsageCount Value="8"/>
+        <UsageCount Value="7"/>
       </Unit>
       <Unit>
         <Filename Value="../../laz/components-3.4/Indy/Lib/System/IdStackUnix.pas"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="413"/>
         <CursorPos Y="422"/>
-        <UsageCount Value="10"/>
+        <UsageCount Value="9"/>
       </Unit>
       <Unit>
         <Filename Value="../../laz/components-3.4/Indy/Lib/Core/IdThreadSafe.pas"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="244"/>
         <CursorPos Y="263"/>
-        <UsageCount Value="8"/>
+        <UsageCount Value="7"/>
       </Unit>
       <Unit>
         <Filename Value="../../laz/lazarus-3.4/lcl/include/fpimagebitmap.inc"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="121"/>
         <CursorPos Y="141"/>
-        <UsageCount Value="9"/>
+        <UsageCount Value="8"/>
       </Unit>
       <Unit>
         <Filename Value="/usr/lib/fpc/3.2.2/source/rtl/objpas/sysutils/datih.inc"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="137"/>
         <CursorPos X="10" Y="157"/>
-        <UsageCount Value="9"/>
+        <UsageCount Value="8"/>
       </Unit>
       <Unit>
         <Filename Value="../../laz/components-3.4/Indy/Lib/System/IdStack.pas"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="777"/>
         <CursorPos Y="796"/>
-        <UsageCount Value="9"/>
+        <UsageCount Value="8"/>
       </Unit>
       <Unit>
         <Filename Value="../../laz/components-3.4/Indy/Lib/Core/IdIOHandlerStack.pas"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="375"/>
         <CursorPos Y="394"/>
-        <UsageCount Value="9"/>
+        <UsageCount Value="8"/>
       </Unit>
       <Unit>
         <Filename Value="../../laz/components-3.4/Indy/Lib/Protocols/IdSSLOpenSSLHeaders.pas"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="19478"/>
         <CursorPos X="10" Y="19499"/>
-        <UsageCount Value="9"/>
+        <UsageCount Value="8"/>
       </Unit>
       <Unit>
         <Filename Value="../../laz/lazarus-3.4/lcl/include/control.inc"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="3988"/>
         <CursorPos Y="4009"/>
-        <UsageCount Value="9"/>
+        <UsageCount Value="8"/>
       </Unit>
       <Unit>
         <Filename Value="../../laz/lazarus-3.4/lcl/include/picture.inc"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="594"/>
         <CursorPos Y="614"/>
-        <UsageCount Value="9"/>
+        <UsageCount Value="8"/>
       </Unit>
       <Unit>
         <Filename Value="/usr/lib/fpc/3.2.2/source/packages/xforms/examples/canvas.pp"/>
         <EditorIndex Value="-1"/>
         <CursorPos X="19" Y="43"/>
-        <UsageCount Value="10"/>
+        <UsageCount Value="9"/>
       </Unit>
       <Unit>
         <Filename Value="../../laz/lazarus-3.4/lcl/lazcanvas.pas"/>
@@ -132,7 +131,7 @@
         <EditorIndex Value="2"/>
         <TopLine Value="50"/>
         <CursorPos X="30" Y="82"/>
-        <UsageCount Value="10"/>
+        <UsageCount Value="12"/>
         <Loaded Value="True"/>
       </Unit>
       <Unit>
@@ -140,7 +139,7 @@
         <UnitName Value="FPImgCanv"/>
         <EditorIndex Value="3"/>
         <CursorPos X="3" Y="23"/>
-        <UsageCount Value="10"/>
+        <UsageCount Value="12"/>
         <Loaded Value="True"/>
       </Unit>
       <Unit>
@@ -148,8 +147,8 @@
         <UnitName Value="FPImage"/>
         <EditorIndex Value="1"/>
         <TopLine Value="178"/>
-        <CursorPos X="25" Y="191"/>
-        <UsageCount Value="10"/>
+        <CursorPos Y="191"/>
+        <UsageCount Value="12"/>
         <Loaded Value="True"/>
       </Unit>
     </Units>
@@ -279,5 +278,12 @@
       <FormatVersion Value="2"/>
       <Modes ActiveMode=""/>
     </RunParams>
+    <HistoryLists>
+      <List Name="WorkingDirectory" Type="File" Count="1"/>
+      <List Name="LaunchingApplication" Type="File" Count="1">
+        <Item1 Value="/usr/bin/xterm -T &apos;Lazarus Run Output&apos; -e $(LazarusDir)/tools/runwait.sh $(TargetCmdLine)"/>
+      </List>
+      <List Name="CommandLineParameters" Count="1"/>
+    </HistoryLists>
   </ProjectSession>
 </CONFIG>
