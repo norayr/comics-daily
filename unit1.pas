@@ -27,6 +27,7 @@ type
     SaveComicButton: TButton;
     Memo1: TMemo;
     Image1: TImage;
+    procedure ComboBox1Change(Sender: TObject);
     procedure firstButtonClick(Sender: TObject);
     procedure lastButtonClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
@@ -104,16 +105,33 @@ begin
   begin
     FCurrentDate := FGoComics.FirstComicDate;
     LoadComic(FCurrentComic, FCurrentDate);
-    firstButton.Enabled := False;
-    prevButton.Enabled := False;
+    FGoComics.PrevComicUrl := '';
     UpdateButtonStates;
+    //firstButton.Enabled := False;
+    //prevButton.Enabled := False;
+    //nextButton.Enabled := True;
+    //lastButton.Enabled := True;
   end;
+end;
+
+procedure TForm1.ComboBox1Change(Sender: TObject);
+begin
+  PrevButton.Enabled := False;
+  NextButton.Enabled := False;
+  firstButton.Enabled := False;
+  lastButton.Enabled := False;
 end;
 
 
 procedure TForm1.lastButtonClick(Sender: TObject);
 begin
   LoadLatestComic(FCurrentComic);
+  FGoComics.NextComicUrl := '';
+  UpdateButtonStates;
+  //firstButton.Enabled := True;
+  //prevButton.Enabled := True;
+  //nextButton.Enabled := False;
+  //lastButton.Enabled := False;
 end;
 
 procedure TForm1.FormResize(Sender: TObject);
@@ -402,7 +420,7 @@ begin
 
   // Position ComboBox1
   ComboBox1.Left := Margin;
-  ComboBox1.Top := PrevButton.Top;
+  ComboBox1.Top := SaveComicButton.Top;
 end;
 
 

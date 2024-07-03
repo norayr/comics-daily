@@ -69,6 +69,7 @@ object Form1: TForm1
     ItemHeight = 0
     TabOrder = 5
     Text = 'ComboBox1'
+    OnChange = ComboBox1Change
   end
   object firstButton: TButton
     Left = 520

@@ -42,8 +42,8 @@ type
       function GetLatestComicUrl: string;
       property StartDate: TDateTime read GetStartDate;
       property Title: string read GetTitle;
-      property PrevComicUrl: string read FPrevComicUrl;
-      property NextComicUrl: string read FNextComicUrl;
+      property PrevComicUrl: string read FPrevComicUrl write FPrevComicUrl;
+      property NextComicUrl: string read FNextComicUrl write FNextComicUrl;
       property FirstComicUrl: string read FFirstComicUrl;
       property PrevComicDate: TDateTime read FPrevComicDate;
       property NextComicDate: TDateTime read FNextComicDate;
