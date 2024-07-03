@@ -15,6 +15,8 @@ type
   { TForm1 }
 
   TForm1 = class(TForm)
+    buttonLast: TButton;
+    buttonFirst: TButton;
     ComboBox1: TComboBox;
     PrevButton: TButton;
     NextButton: TButton;
@@ -22,6 +24,8 @@ type
     SaveComicButton: TButton;
     Memo1: TMemo;
     Image1: TImage;
+    procedure buttonFirstClick(Sender: TObject);
+    procedure buttonLastClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure FormResize(Sender: TObject);
     procedure ShowComicButtonClick(Sender: TObject);
@@ -34,6 +38,7 @@ type
     FContentType: string;
     FCurrentDate: TDateTime;
     FCurrentComic: string;
+    FGoComics: TGoComics;
     procedure LoadImageFromStream(Stream: TMemoryStream; const ContentType: string);
     procedure ResizeImage;
     function GetComicsDailyDir: string;
@@ -79,9 +84,26 @@ begin
   Memo1.Visible := False;
 
   FCurrentComic := ComboBox1.Text; // Initialize the current comic
+  FGoComics := TGoComics.Create(FCurrentComic); // Initialize GoComics object
+  FComicStream := TMemoryStream.Create; // Initialize FComicStream
   LoadLatestComic(FCurrentComic); // Load the latest comic on startup
   UpdateButtonStates;
   UpdateLayout; // Adjust the layout based on the initial form size
+end;
+
+procedure TForm1.buttonFirstClick(Sender: TObject);
+begin
+  if FGoComics.FirstComicUrl <> '' then
+  begin
+    FCurrentDate := FGoComics.FirstComicDate;
+    LoadComic(FCurrentComic, FCurrentDate);
+    UpdateButtonStates;
+  end;
+end;
+
+procedure TForm1.buttonLastClick(Sender: TObject);
+begin
+  LoadLatestComic(FCurrentComic);
 end;
 
 procedure TForm1.FormResize(Sender: TObject);
@@ -93,22 +115,27 @@ end;
 procedure TForm1.ShowComicButtonClick(Sender: TObject);
 begin
   FCurrentComic := ComboBox1.Text;
+  FreeAndNil(FGoComics); // Free previous instance if it exists
+  FGoComics := TGoComics.Create(FCurrentComic); // Initialize GoComics object
   LoadLatestComic(FCurrentComic);
   UpdateButtonStates;
 end;
 
 procedure TForm1.PrevButtonClick(Sender: TObject);
 begin
-  FCurrentDate := FCurrentDate - 1;
-  LoadComic(FCurrentComic, FCurrentDate);
-  UpdateButtonStates;
+  if FGoComics.PrevComicUrl <> '' then
+  begin
+    FCurrentDate := FGoComics.PrevComicDate;
+    LoadComic(FCurrentComic, FCurrentDate);
+    UpdateButtonStates;
+  end;
 end;
 
 procedure TForm1.NextButtonClick(Sender: TObject);
 begin
-  if FCurrentDate < Now then
+  if (FGoComics.NextComicUrl <> '') and (FCurrentDate < Now) then
   begin
-    FCurrentDate := FCurrentDate + 1;
+    FCurrentDate := FGoComics.NextComicDate;
     LoadComic(FCurrentComic, FCurrentDate);
     UpdateButtonStates;
   end;
@@ -116,7 +143,6 @@ end;
 
 procedure TForm1.LoadLatestComic(const Comic: string);
 var
-  GoComics: TGoComics;
   LatestComicUrl, DateStr: string;
   ComicDate: TDateTime;
 begin
@@ -128,8 +154,7 @@ begin
 
   Memo1.Lines.Add('Fetching the latest comic for ' + Comic + '...');
   try
-    GoComics := TGoComics.Create(Comic);
-    LatestComicUrl := GoComics.GetLatestComicUrl;
+    LatestComicUrl := FGoComics.GetLatestComicUrl;
     DateStr := Copy(LatestComicUrl, Length(LatestComicUrl) - 9, 10);
     ComicDate := EncodeDate(StrToInt(Copy(DateStr, 1, 4)),
                            StrToInt(Copy(DateStr, 6, 2)),
@@ -138,13 +163,12 @@ begin
     LoadComic(Comic, ComicDate);
     UpdateButtonStates;
   finally
-    GoComics.Free;
+    // GoComics object is managed globally now, no need to free here
   end;
 end;
 
 procedure TForm1.LoadComic(const Comic: string; const ComicDate: TDateTime);
 var
-  GoComics: TGoComics;
   RetryDate: TDateTime;
 begin
   if Comic = '' then
@@ -152,50 +176,48 @@ begin
     Memo1.Lines.Add('No comic selected.');
     Exit;
   end;
-
+  Form1.Caption := Comic + ' ' + DateToStr(ComicDate);
   Memo1.Lines.Add('Fetching comic for ' + Comic + ' on ' + DateToStr(ComicDate) + '...');
   try
-    GoComics := TGoComics.Create(Comic);
+    FreeAndNil(FComicStream); // Free previous instance if it exists
+    FComicStream := TMemoryStream.Create;
+    try
+      try
+        FComicStream := FGoComics.GetImageUrl(ComicDate, FFileName, FContentType);
+      except
+        on E: Exception do
+        begin
+          Memo1.Lines.Add('Error fetching comic for ' + DateToStr(ComicDate) + ': ' + E.Message);
+          RetryDate := ComicDate - 1; // Try the previous day
+          Memo1.Lines.Add('Retrying with previous day''s comic...');
+          try
+            FComicStream := FGoComics.GetImageUrl(RetryDate, FFileName, FContentType);
+          except
+            on E: Exception do
+            begin
+              Memo1.Lines.Add('Error fetching comic for ' + DateToStr(RetryDate) + ': ' + E.Message);
+              raise;
+            end;
+          end;
+          FCurrentDate := RetryDate;
+        end;
+      end;
+
+      Memo1.Lines.Add('Content Type: ' + FContentType); // Log content type for debugging
+      if Pos('text/html', FContentType) > 0 then
+        raise Exception.Create('Received HTML instead of image. Please check the image URL.');
+
+      LoadImageFromStream(FComicStream, FContentType);
+      Memo1.Lines.Add('Comic displayed successfully for ' + DateToStr(FCurrentDate));
+      SaveComicButton.Enabled := True;
+    finally
+      // Do not free FComicStream here as it is still needed for the image display
+    end;
   except
     on E: Exception do
     begin
-      Memo1.Lines.Add('Error creating comic endpoint: ' + E.Message);
-      Exit;
+      Memo1.Lines.Add('Error: ' + E.Message);
     end;
-  end;
-
-  FComicStream := TMemoryStream.Create;
-  try
-    try
-      FComicStream := GoComics.GetImageUrl(ComicDate, FFileName, FContentType);
-    except
-      on E: Exception do
-      begin
-        Memo1.Lines.Add('Error fetching comic for ' + DateToStr(ComicDate) + ': ' + E.Message);
-        RetryDate := ComicDate - 1; // Try the previous day
-        Memo1.Lines.Add('Retrying with previous day''s comic...');
-        try
-          FComicStream := GoComics.GetImageUrl(RetryDate, FFileName, FContentType);
-        except
-          on E: Exception do
-          begin
-            Memo1.Lines.Add('Error fetching comic for ' + DateToStr(RetryDate) + ': ' + E.Message);
-            raise;
-          end;
-        end;
-        FCurrentDate := RetryDate;
-      end;
-    end;
-
-    Memo1.Lines.Add('Content Type: ' + FContentType); // Log content type for debugging
-    if Pos('text/html', FContentType) > 0 then
-      raise Exception.Create('Received HTML instead of image. Please check the image URL.');
-
-    LoadImageFromStream(FComicStream, FContentType);
-    Memo1.Lines.Add('Comic displayed successfully for ' + DateToStr(FCurrentDate));
-    SaveComicButton.Enabled := True;
-  finally
-    GoComics.Free;
   end;
 end;
 
@@ -323,8 +345,8 @@ end;
 
 procedure TForm1.UpdateButtonStates;
 begin
-  PrevButton.Enabled := True;
-  NextButton.Enabled := FCurrentDate < Date;
+  PrevButton.Enabled := FGoComics.PrevComicUrl <> '';
+  NextButton.Enabled := (FGoComics.NextComicUrl <> '') and (FCurrentDate < Now);
 end;
 
 procedure TForm1.UpdateLayout;

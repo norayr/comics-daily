@@ -70,4 +70,22 @@ object Form1: TForm1
     TabOrder = 5
     Text = 'ComboBox1'
   end
+  object buttonFirst: TButton
+    Left = 520
+    Height = 25
+    Top = 352
+    Width = 75
+    Caption = '<<<'
+    TabOrder = 6
+    OnClick = buttonFirstClick
+  end
+  object buttonLast: TButton
+    Left = 883
+    Height = 25
+    Top = 352
+    Width = 75
+    Caption = '>>>'
+    TabOrder = 7
+    OnClick = buttonLastClick
+  end
 end
