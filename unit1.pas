@@ -10,13 +10,16 @@ uses
   LazFileUtils, IntfGraphics, Math,
   GoComicsAPI;
 
+const
+  comic_section = 0.8;
+
 type
 
   { TForm1 }
 
   TForm1 = class(TForm)
-    buttonLast: TButton;
-    buttonFirst: TButton;
+    lastButton: TButton;
+    firstButton: TButton;
     ComboBox1: TComboBox;
     PrevButton: TButton;
     NextButton: TButton;
@@ -24,8 +27,8 @@ type
     SaveComicButton: TButton;
     Memo1: TMemo;
     Image1: TImage;
-    procedure buttonFirstClick(Sender: TObject);
-    procedure buttonLastClick(Sender: TObject);
+    procedure firstButtonClick(Sender: TObject);
+    procedure lastButtonClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure FormResize(Sender: TObject);
     procedure ShowComicButtonClick(Sender: TObject);
@@ -83,25 +86,32 @@ begin
   Memo1.Enabled := False;
   Memo1.Visible := False;
 
-  FCurrentComic := ComboBox1.Text; // Initialize the current comic
-  FGoComics := TGoComics.Create(FCurrentComic); // Initialize GoComics object
-  FComicStream := TMemoryStream.Create; // Initialize FComicStream
-  LoadLatestComic(FCurrentComic); // Load the latest comic on startup
-  UpdateButtonStates;
+  Form1.Caption:= 'comics daily';
+
+//  FCurrentComic := ComboBox1.Text; // Initialize the current comic
+//  FGoComics := TGoComics.Create(FCurrentComic); // Initialize GoComics object
+//  FComicStream := TMemoryStream.Create; // Initialize FComicStream
+//  LoadLatestComic(FCurrentComic); // Load the latest comic on startup
+//  UpdateButtonStates;
+  prevButton.Enabled:= False; nextButton.Enabled:= False; firstButton.Enabled:= False; lastButton.Enabled := False;
+  SaveComicButton.Enabled:= False;
   UpdateLayout; // Adjust the layout based on the initial form size
 end;
 
-procedure TForm1.buttonFirstClick(Sender: TObject);
+procedure TForm1.firstButtonClick(Sender: TObject);
 begin
   if FGoComics.FirstComicUrl <> '' then
   begin
     FCurrentDate := FGoComics.FirstComicDate;
     LoadComic(FCurrentComic, FCurrentDate);
+    firstButton.Enabled := False;
+    prevButton.Enabled := False;
     UpdateButtonStates;
   end;
 end;
 
-procedure TForm1.buttonLastClick(Sender: TObject);
+
+procedure TForm1.lastButtonClick(Sender: TObject);
 begin
   LoadLatestComic(FCurrentComic);
 end;
@@ -117,6 +127,11 @@ begin
   FCurrentComic := ComboBox1.Text;
   FreeAndNil(FGoComics); // Free previous instance if it exists
   FGoComics := TGoComics.Create(FCurrentComic); // Initialize GoComics object
+
+  // i guess only this has to be added?
+  FComicStream := TMemoryStream.Create; // Initialize FComicStream
+
+
   LoadLatestComic(FCurrentComic);
   UpdateButtonStates;
 end;
@@ -294,8 +309,8 @@ begin
         Image1.Picture.Bitmap.Canvas.StretchDraw(Rect(0, 0, NewWidth, NewHeight), Bitmap);
 
         // Center the image in the middle of Image1
-        Image1.Left := (ClientWidth - Image1.Width) div 2;
-        Image1.Top := (ClientHeight - Image1.Height) div 2;
+        Image1.Left := 0; //(ClientWidth - Image1.Width) div 2;
+        Image1.Top := 0; //(ClientHeight - Image1.Height) div 2;
       finally
         Bitmap.Free;
       end;
@@ -347,6 +362,8 @@ procedure TForm1.UpdateButtonStates;
 begin
   PrevButton.Enabled := FGoComics.PrevComicUrl <> '';
   NextButton.Enabled := (FGoComics.NextComicUrl <> '') and (FCurrentDate < Now);
+  lastButton.Enabled := NextButton.Enabled;
+  firstButton.Enabled := PrevButton.Enabled;
 end;
 
 procedure TForm1.UpdateLayout;
@@ -359,11 +376,14 @@ begin
   FormHeight := ClientHeight;
 
   // Resize and position Image1
-  Image1.SetBounds(0, 0, FormWidth, Round(FormHeight * 0.8));
+  Image1.SetBounds(0, 0, FormWidth, Round(FormHeight * comic_section));
+
 
   // Position ShowComicButton
-  ShowComicButton.Left := FormWidth - ShowComicButton.Width - Margin;
-  ShowComicButton.Top := Image1.Height + Margin;
+  ShowComicButton.Left := FormWidth - lastButton.Width - ShowComicButton.Width - Margin - Margin;
+  //ShowComicButton.Top := Min(Image1.Height, Round(FormHeight * comic_section)) + Margin * 2;
+  //  ShowComicButton.Top := Image1.Picture.Bitmap.Height + ShowcomicButton.Height + Margin;
+  ShowComicButton.Top := FormHeight - ShowComicButton.Height - SaveComicButton.Height - PrevButton.Height - Margin * 3;
 
   // Position PrevButton and NextButton
   PrevButton.Left := ShowComicButton.Left;
@@ -371,12 +391,20 @@ begin
   NextButton.Left := ShowComicButton.Left + ShowComicButton.Width - NextButton.Width;
   NextButton.Top := PrevButton.Top;
 
+  lastButton.Left := FormWidth - LastButton.Width - Margin;
+  lastButton.Top := PrevButton.Top;
+  firstButton.Left := PrevButton.Left - firstButton.Width - Margin;
+  firstButton.Top := PrevButton.Top;
+
   // Position SaveComicButton
   SaveComicButton.Left := ShowComicButton.Left;
   SaveComicButton.Top := PrevButton.Top + PrevButton.Height + Margin;
 
-  ComboBox1.Top := ShowComicButton.Top;
+  // Position ComboBox1
+  ComboBox1.Left := Margin;
+  ComboBox1.Top := PrevButton.Top;
 end;
+
 
 end.
 

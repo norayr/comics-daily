@@ -21,8 +21,8 @@ object Form1: TForm1
   end
   object ShowComicButton: TButton
     Left = 632
-    Height = 25
-    Top = 296
+    Height = 41
+    Top = 280
     Width = 211
     Caption = 'show'
     TabOrder = 1
@@ -36,8 +36,8 @@ object Form1: TForm1
   end
   object SaveComicButton: TButton
     Left = 632
-    Height = 25
-    Top = 400
+    Height = 41
+    Top = 408
     Width = 211
     Caption = 'download'
     TabOrder = 2
@@ -45,8 +45,8 @@ object Form1: TForm1
   end
   object prevButton: TButton
     Left = 632
-    Height = 25
-    Top = 352
+    Height = 41
+    Top = 336
     Width = 75
     Caption = '<--'
     TabOrder = 3
@@ -54,8 +54,8 @@ object Form1: TForm1
   end
   object nextButton: TButton
     Left = 768
-    Height = 25
-    Top = 352
+    Height = 41
+    Top = 336
     Width = 75
     Caption = '-->'
     TabOrder = 4
@@ -70,22 +70,22 @@ object Form1: TForm1
     TabOrder = 5
     Text = 'ComboBox1'
   end
-  object buttonFirst: TButton
+  object firstButton: TButton
     Left = 520
-    Height = 25
-    Top = 352
+    Height = 41
+    Top = 336
     Width = 75
     Caption = '<<<'
     TabOrder = 6
-    OnClick = buttonFirstClick
+    OnClick = firstButtonClick
   end
-  object buttonLast: TButton
+  object lastButton: TButton
     Left = 883
-    Height = 25
-    Top = 352
+    Height = 41
+    Top = 336
     Width = 75
     Caption = '>>>'
     TabOrder = 7
-    OnClick = buttonLastClick
+    OnClick = lastButtonClick
   end
 end
