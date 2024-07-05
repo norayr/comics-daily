@@ -49,3 +49,6 @@ PARAMS =  $(PROJECT) -FU/tmp -Xs -Xg -MObjFPC -Scgi -O1 -gl -vewnhi -l \
 # Default target to build the project
 all:
 	$(FPC) $(PARAMS)
+	cp comics_daily /usr/bin/
+	cp comics_daily.png /usr/share/pixmaps/
+	cp comics_daily.desktop /usr/share/applications/hildon/

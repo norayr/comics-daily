@@ -1,0 +1,10 @@
+[Desktop Entry]
+Encoding=UTF-8
+Name=Comics Daily
+Comment=Comics daily
+Exec=/usr/bin/photolightmeter
+Icon=comics_daily
+Terminal=false
+X-MultipleArgs=false
+Type=Application
+X-Osso-Type=application/x-executable
