@@ -43,6 +43,10 @@ type
     FCurrentDate: TDateTime;
     FCurrentComic: string;
     FGoComics: TGoComics;
+    FPrevComicUrl: string;
+    FNextComicUrl: string;
+    FFirstComicUrl: string;
+    FLastComicUrl: string;
     procedure LoadImageFromStream(Stream: TMemoryStream; const ContentType: string);
     procedure ResizeImage;
     function GetComicsDailyDir: string;
@@ -51,6 +55,7 @@ type
     procedure LoadLatestComic(const Comic: string);
     procedure UpdateButtonStates;
     procedure UpdateLayout;
+    procedure UpdateNavigationUrls;
   public
 
   end;
@@ -87,31 +92,14 @@ begin
   Memo1.Enabled := False;
   Memo1.Visible := False;
 
-  Form1.Caption:= 'comics daily';
+  Form1.Caption := 'comics daily';
 
-//  FCurrentComic := ComboBox1.Text; // Initialize the current comic
-//  FGoComics := TGoComics.Create(FCurrentComic); // Initialize GoComics object
-//  FComicStream := TMemoryStream.Create; // Initialize FComicStream
-//  LoadLatestComic(FCurrentComic); // Load the latest comic on startup
-//  UpdateButtonStates;
-  prevButton.Enabled:= False; nextButton.Enabled:= False; firstButton.Enabled:= False; lastButton.Enabled := False;
-  SaveComicButton.Enabled:= False;
+  prevButton.Enabled := False;
+  nextButton.Enabled := False;
+  firstButton.Enabled := False;
+  lastButton.Enabled := False;
+  SaveComicButton.Enabled := False;
   UpdateLayout; // Adjust the layout based on the initial form size
-end;
-
-procedure TForm1.firstButtonClick(Sender: TObject);
-begin
-  if FGoComics.FirstComicUrl <> '' then
-  begin
-    FCurrentDate := FGoComics.FirstComicDate;
-    LoadComic(FCurrentComic, FCurrentDate);
-    FGoComics.PrevComicUrl := '';
-    UpdateButtonStates;
-    //firstButton.Enabled := False;
-    //prevButton.Enabled := False;
-    //nextButton.Enabled := True;
-    //lastButton.Enabled := True;
-  end;
 end;
 
 procedure TForm1.ComboBox1Change(Sender: TObject);
@@ -120,36 +108,44 @@ begin
   NextButton.Enabled := False;
   firstButton.Enabled := False;
   lastButton.Enabled := False;
-end;
-
-
-procedure TForm1.lastButtonClick(Sender: TObject);
-begin
-  LoadLatestComic(FCurrentComic);
-  FGoComics.NextComicUrl := '';
-  UpdateButtonStates;
-  //firstButton.Enabled := True;
-  //prevButton.Enabled := True;
-  //nextButton.Enabled := False;
-  //lastButton.Enabled := False;
-end;
-
-procedure TForm1.FormResize(Sender: TObject);
-begin
-  UpdateLayout; // Adjust the layout when the form is resized
-  ResizeImage; // Resize the image when the form is resized
+  FPrevComicUrl := '';
+  FNextComicUrl := '';
+  FFirstComicUrl := '';
+  FLastComicUrl := '';
 end;
 
 procedure TForm1.ShowComicButtonClick(Sender: TObject);
 begin
   FCurrentComic := ComboBox1.Text;
+
   FreeAndNil(FGoComics); // Free previous instance if it exists
   FGoComics := TGoComics.Create(FCurrentComic); // Initialize GoComics object
 
-  // i guess only this has to be added?
+  // Restore saved URLs
+  FGoComics.PrevComicUrl := FPrevComicUrl;
+  FGoComics.NextComicUrl := FNextComicUrl;
+  FGoComics.FirstComicUrl := FFirstComicUrl;
+  FGoComics.LastComicUrl := FLastComicUrl;
+
   FComicStream := TMemoryStream.Create; // Initialize FComicStream
 
+  LoadLatestComic(FCurrentComic);
+  UpdateButtonStates;
+end;
 
+procedure TForm1.firstButtonClick(Sender: TObject);
+begin
+  if FGoComics.FirstComicUrl <> '' then
+  begin
+    FCurrentDate := FGoComics.FirstComicDate;
+    LoadComic(FCurrentComic, FCurrentDate);
+    UpdateNavigationUrls;
+    UpdateButtonStates;
+  end;
+end;
+
+procedure TForm1.lastButtonClick(Sender: TObject);
+begin
   LoadLatestComic(FCurrentComic);
   UpdateButtonStates;
 end;
@@ -160,6 +156,7 @@ begin
   begin
     FCurrentDate := FGoComics.PrevComicDate;
     LoadComic(FCurrentComic, FCurrentDate);
+    UpdateNavigationUrls;
     UpdateButtonStates;
   end;
 end;
@@ -170,8 +167,15 @@ begin
   begin
     FCurrentDate := FGoComics.NextComicDate;
     LoadComic(FCurrentComic, FCurrentDate);
+    UpdateNavigationUrls;
     UpdateButtonStates;
   end;
+end;
+
+procedure TForm1.FormResize(Sender: TObject);
+begin
+  UpdateLayout; // Adjust the layout when the form is resized
+  ResizeImage; // Resize the image when the form is resized
 end;
 
 procedure TForm1.LoadLatestComic(const Comic: string);
@@ -190,10 +194,11 @@ begin
     LatestComicUrl := FGoComics.GetLatestComicUrl;
     DateStr := Copy(LatestComicUrl, Length(LatestComicUrl) - 9, 10);
     ComicDate := EncodeDate(StrToInt(Copy(DateStr, 1, 4)),
-                           StrToInt(Copy(DateStr, 6, 2)),
-                           StrToInt(Copy(DateStr, 9, 2)));
+      StrToInt(Copy(DateStr, 6, 2)),
+      StrToInt(Copy(DateStr, 9, 2)));
     FCurrentDate := ComicDate;
     LoadComic(Comic, ComicDate);
+    UpdateNavigationUrls;
     UpdateButtonStates;
   finally
     // GoComics object is managed globally now, no need to free here
@@ -252,6 +257,9 @@ begin
       Memo1.Lines.Add('Error: ' + E.Message);
     end;
   end;
+
+  // Save the current navigation URLs
+  UpdateNavigationUrls;
 end;
 
 procedure TForm1.SaveComicButtonClick(Sender: TObject);
@@ -379,9 +387,20 @@ end;
 procedure TForm1.UpdateButtonStates;
 begin
   PrevButton.Enabled := FGoComics.PrevComicUrl <> '';
-  NextButton.Enabled := (FGoComics.NextComicUrl <> '') and (FCurrentDate < Now);
-  lastButton.Enabled := NextButton.Enabled;
+  NextButton.Enabled := FGoComics.NextComicUrl <> '';
+  //firstButton.Enabled := FCurrentDate <> FGoComics.FirstComicDate;
   firstButton.Enabled := PrevButton.Enabled;
+  lastButton.Enabled := NextButton.Enabled;
+
+  {if NextButton.Enabled = False then
+  begin
+    lastButton.Enabled := False
+  end
+ else
+  begin
+  lastButton.Enabled := FCurrentDate <> FGoComics.LastComicDate
+  end;
+  }
 end;
 
 procedure TForm1.UpdateLayout;
@@ -396,11 +415,8 @@ begin
   // Resize and position Image1
   Image1.SetBounds(0, 0, FormWidth, Round(FormHeight * comic_section));
 
-
   // Position ShowComicButton
   ShowComicButton.Left := FormWidth - lastButton.Width - ShowComicButton.Width - Margin - Margin;
-  //ShowComicButton.Top := Min(Image1.Height, Round(FormHeight * comic_section)) + Margin * 2;
-  //  ShowComicButton.Top := Image1.Picture.Bitmap.Height + ShowcomicButton.Height + Margin;
   ShowComicButton.Top := FormHeight - ShowComicButton.Height - SaveComicButton.Height - PrevButton.Height - Margin * 3;
 
   // Position PrevButton and NextButton
@@ -423,6 +439,16 @@ begin
   ComboBox1.Top := SaveComicButton.Top;
 end;
 
+procedure TForm1.UpdateNavigationUrls;
+begin
+  FPrevComicUrl := FGoComics.PrevComicUrl;
+  FNextComicUrl := FGoComics.NextComicUrl;
+  FFirstComicUrl := FGoComics.FirstComicUrl;
+  FLastComicUrl := FGoComics.LastComicUrl;
+
+  // Show the navigation URLs for debugging purposes
+  //ShowMessage('Prev: ' + FPrevComicUrl + ' Next: ' + FNextComicUrl + ' First: ' + FFirstComicUrl + ' Last: ' + FLastComicUrl);
+end;
 
 end.
 

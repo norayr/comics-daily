@@ -18,37 +18,42 @@ type
   { TGoComics }
 
   TGoComics = class
-    private
-      FEndpoint: string;
-      FTitle: string;
-      FStartDate: TDateTime;
-      FPrevComicUrl: string;
-      FNextComicUrl: string;
-      FFirstComicUrl: string;
-      FPrevComicDate: TDateTime;
-      FNextComicDate: TDateTime;
-      FFirstComicDate: TDateTime;
-      HTTPClient: TFPHTTPClient;
-      function GetStartDate: TDateTime;
-      function GetTitle: string;
-      function FormatDate(const ADate: TDateTime): string;
-      function ExtractImageUrlFromHtml(const Html: string): string;
-      function ExtractLatestComicUrlFromHtml(const Html: string): string;
-      procedure ExtractNavigationUrlsFromHtml(const Html: string);
-    public
-      constructor Create(const AEndpoint: string);
-      destructor Destroy; override;
-      function GetImageUrl(const ADate: TDateTime; out FileName: string; out ContentType: string): TMemoryStream;
-      function GetLatestComicUrl: string;
-      property StartDate: TDateTime read GetStartDate;
-      property Title: string read GetTitle;
-      property PrevComicUrl: string read FPrevComicUrl write FPrevComicUrl;
-      property NextComicUrl: string read FNextComicUrl write FNextComicUrl;
-      property FirstComicUrl: string read FFirstComicUrl;
-      property PrevComicDate: TDateTime read FPrevComicDate;
-      property NextComicDate: TDateTime read FNextComicDate;
-      property FirstComicDate: TDateTime read FFirstComicDate;
-    end;
+  private
+    FEndpoint: string;
+    FTitle: string;
+    FStartDate: TDateTime;
+    FPrevComicUrl: string;
+    FNextComicUrl: string;
+    FFirstComicUrl: string;
+    FLastComicUrl: string;
+    FPrevComicDate: TDateTime;
+    FNextComicDate: TDateTime;
+    FFirstComicDate: TDateTime;
+    FLastComicDate: TDateTime;
+    HTTPClient: TFPHTTPClient;
+    function GetStartDate: TDateTime;
+    function GetTitle: string;
+    function FormatDate(const ADate: TDateTime): string;
+    function ExtractImageUrlFromHtml(const Html: string): string;
+    function ExtractLatestComicUrlFromHtml(const Html: string): string;
+    procedure ExtractNavigationUrlsFromHtml(const Html: string);
+  public
+    constructor Create(const AEndpoint: string);
+    destructor Destroy; override;
+    function GetImageUrl(const ADate: TDateTime; out FileName: string; out ContentType: string): TMemoryStream;
+    function GetLatestComicUrl: string;
+    property StartDate: TDateTime read GetStartDate;
+    property Title: string read GetTitle;
+    property PrevComicUrl: string read FPrevComicUrl write FPrevComicUrl;
+    property NextComicUrl: string read FNextComicUrl write FNextComicUrl;
+    property FirstComicUrl: string read FFirstComicUrl write FFirstComicUrl;
+    property LastComicUrl: string read FLastComicUrl write FLastComicUrl;
+    property PrevComicDate: TDateTime read FPrevComicDate;
+    property NextComicDate: TDateTime read FNextComicDate;
+    property FirstComicDate: TDateTime read FFirstComicDate;
+    property LastComicDate: TDateTime read FLastComicDate;
+  end;
+
 implementation
 
 { TGoComics }
@@ -96,100 +101,85 @@ begin
   if Result = '' then
     raise Exception.Create('Latest comic URL not found.');
 end;
+
 procedure TGoComics.ExtractNavigationUrlsFromHtml(const Html: string);
 var
-  NavPos, FirstPos, PrevPos, NextPos, FirstEndPos, PrevEndPos, NextEndPos: Integer;
-  FirstUrl, PrevUrl, NextUrl: string;
+  NavPos, LinkPos, ClassPos: Integer;
+  Url, ClassStr: string;
   YearStr, MonthStr, DayStr: string;
   Year, Month, Day: Integer;
 begin
   NavPos := Pos('<nav class="gc-calendar-nav" role="group" aria-label="Date Navigation Controls">', Html);
   if NavPos > 0 then
   begin
-    FirstPos := PosEx('<a role=''button'' href=''/', Html, NavPos);
-    if FirstPos > 0 then
+    // Reset URLs
+    FFirstComicUrl := '';
+    FPrevComicUrl := '';
+    FNextComicUrl := '';
+    FLastComicUrl := '';
+
+    LinkPos := PosEx('<a role=''button'' href=''', Html, NavPos);
+    while LinkPos > 0 do
     begin
-      FirstPos := FirstPos + Length('<a role=''button'' href=''');
-      FirstEndPos := PosEx('''', Html, FirstPos);
-      FirstUrl := Copy(Html, FirstPos, FirstEndPos - FirstPos);
-      FFirstComicUrl := BASE_URL + FirstUrl;
+      LinkPos := LinkPos + Length('<a role=''button'' href=''''');
+      Url := Copy(Html, LinkPos, PosEx('''', Html, LinkPos) - LinkPos);
 
-      // Extract date components
-      YearStr := Copy(FirstUrl, Length(FirstUrl) - 9, 4);
-      MonthStr := Copy(FirstUrl, Length(FirstUrl) - 4, 2);
-      DayStr := Copy(FirstUrl, Length(FirstUrl) - 1, 2);
-
-      // Ensure that the date components are correctly extracted
-      if TryStrToInt(YearStr, Year) and
-         TryStrToInt(MonthStr, Month) and
-         TryStrToInt(DayStr, Day) then
+      ClassPos := PosEx('class=''fa ', Html, LinkPos);
+      if ClassPos > 0 then
       begin
+        ClassStr := Copy(Html, ClassPos + Length('class='''), PosEx('''', Html, ClassPos + Length('class=''')) - (ClassPos + Length('class=''')));
+
+        if Pos('fa-backward', ClassStr) > 0 then
+          if Url = ' class=' then begin FFirstComicUrl := '' end else begin FFirstComicUrl := BASE_URL + Url end
+        else if Pos('fa-caret-left', ClassStr) > 0 then
+          if Url = ' class=' then begin FPrevComicUrl := '' end else begin FPrevComicUrl := BASE_URL + Url end
+          //FPrevComicUrl := BASE_URL + Url
+        else if Pos('fa-caret-right', ClassStr) > 0 then
+          if Url = ' class=' then begin FNextComicUrl := '' end else begin FNextComicUrl := BASE_URL + Url end
+          //FNextComicUrl := BASE_URL + Url
+        else if Pos('fa-forward', ClassStr) > 0 then
+          if Url = ' class=' then begin FLastComicUrl := '' end else begin FLastComicUrl := BASE_URL + Url; end
+          //FLastComicUrl := BASE_URL + Url;
+      end;
+
+      LinkPos := PosEx('<a role=''button'' href=''', Html, LinkPos);
+    end;
+
+    // Extract dates for URLs
+    if FFirstComicUrl <> '' then
+    begin
+      YearStr := Copy(FFirstComicUrl, Length(FFirstComicUrl) - 9, 4);
+      MonthStr := Copy(FFirstComicUrl, Length(FFirstComicUrl) - 4, 2);
+      DayStr := Copy(FFirstComicUrl, Length(FFirstComicUrl) - 1, 2);
+      if TryStrToInt(YearStr, Year) and TryStrToInt(MonthStr, Month) and TryStrToInt(DayStr, Day) then
         FFirstComicDate := EncodeDate(Year, Month, Day);
-      end
-      else
-      begin
-        raise Exception.Create('Failed to extract first comic date from URL: ' + FirstUrl);
-      end;
     end;
 
-    PrevPos := PosEx('fa-caret-left', Html, FirstEndPos);
-    if PrevPos > 0 then
+    if FPrevComicUrl <> '' then
     begin
-      PrevPos := PosEx('<a role=''button'' href=''/', Html, FirstEndPos);
-      if PrevPos > 0 then
-      begin
-        PrevPos := PrevPos + Length('<a role=''button'' href=''');
-        PrevEndPos := PosEx('''', Html, PrevPos);
-        PrevUrl := Copy(Html, PrevPos, PrevEndPos - PrevPos);
-        FPrevComicUrl := BASE_URL + PrevUrl;
-
-        // Extract date components
-        YearStr := Copy(PrevUrl, Length(PrevUrl) - 9, 4);
-        MonthStr := Copy(PrevUrl, Length(PrevUrl) - 4, 2);
-        DayStr := Copy(PrevUrl, Length(PrevUrl) - 1, 2);
-
-        // Ensure that the date components are correctly extracted
-        if TryStrToInt(YearStr, Year) and
-           TryStrToInt(MonthStr, Month) and
-           TryStrToInt(DayStr, Day) then
-        begin
-          FPrevComicDate := EncodeDate(Year, Month, Day);
-        end
-        else
-        begin
-          raise Exception.Create('Failed to extract previous comic date from URL: ' + PrevUrl);
-        end;
-      end;
+      YearStr := Copy(FPrevComicUrl, Length(FPrevComicUrl) - 9, 4);
+      MonthStr := Copy(FPrevComicUrl, Length(FPrevComicUrl) - 4, 2);
+      DayStr := Copy(FPrevComicUrl, Length(FPrevComicUrl) - 1, 2);
+      if TryStrToInt(YearStr, Year) and TryStrToInt(MonthStr, Month) and TryStrToInt(DayStr, Day) then
+        FPrevComicDate := EncodeDate(Year, Month, Day);
     end;
 
-    NextPos := PosEx('fa-caret-right', Html, PrevEndPos);
-    if NextPos > 0 then
+    if FNextComicUrl <> '' then
     begin
-      NextPos := PosEx('<a role=''button'' href=''/', Html, PrevEndPos);
-      if NextPos > 0 then
-      begin
-        NextPos := NextPos + Length('<a role=''button'' href=''');
-        NextEndPos := PosEx('''', Html, NextPos);
-        NextUrl := Copy(Html, NextPos, NextEndPos - NextPos);
-        FNextComicUrl := BASE_URL + NextUrl;
+      YearStr := Copy(FNextComicUrl, Length(FNextComicUrl) - 9, 4);
+      MonthStr := Copy(FNextComicUrl, Length(FNextComicUrl) - 4, 2);
+      DayStr := Copy(FNextComicUrl, Length(FNextComicUrl) - 1, 2);
+      if TryStrToInt(YearStr, Year) and TryStrToInt(MonthStr, Month) and TryStrToInt(DayStr, Day) then
+        FNextComicDate := EncodeDate(Year, Month, Day);
+    end;
 
-        // Extract date components
-        YearStr := Copy(NextUrl, Length(NextUrl) - 9, 4);
-        MonthStr := Copy(NextUrl, Length(NextUrl) - 4, 2);
-        DayStr := Copy(NextUrl, Length(NextUrl) - 1, 2);
-
-        // Ensure that the date components are correctly extracted
-        if TryStrToInt(YearStr, Year) and
-           TryStrToInt(MonthStr, Month) and
-           TryStrToInt(DayStr, Day) then
-        begin
-          FNextComicDate := EncodeDate(Year, Month, Day);
-        end
-        else
-        begin
-          raise Exception.Create('Failed to extract next comic date from URL: ' + NextUrl);
-        end;
-      end;
+    if FLastComicUrl <> '' then
+    begin
+      YearStr := Copy(FLastComicUrl, Length(FLastComicUrl) - 9, 4);
+      MonthStr := Copy(FLastComicUrl, Length(FLastComicUrl) - 4, 2);
+      DayStr := Copy(FLastComicUrl, Length(FLastComicUrl) - 1, 2);
+      if TryStrToInt(YearStr, Year) and TryStrToInt(MonthStr, Month) and TryStrToInt(DayStr, Day) then
+        FLastComicDate := EncodeDate(Year, Month, Day);
     end;
   end;
 end;
