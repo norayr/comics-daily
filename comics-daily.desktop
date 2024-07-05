@@ -2,8 +2,8 @@
 Encoding=UTF-8
 Name=Comics Daily
 Comment=Comics daily
-Exec=/usr/bin/photolightmeter
-Icon=comics_daily
+Exec=/usr/bin/comics-daily
+Icon=comics-daily
 Terminal=false
 X-MultipleArgs=false
 Type=Application

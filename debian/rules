@@ -9,13 +9,13 @@ build-stamp:
 clean:
 	dh_testdir
 	dh_testroot
-	-rm -f configure-stamp build-stamp 
+	-rm -f configure-stamp build-stamp
 	dh_clean
 
 install: build
 	dh_testdir
 	dh_testroot
-	$(MAKE) install_hildon
+	$(MAKE) -f Maemakefile install_hildon
 
 binary-indep: build install
 binary-arch: build install
@@ -32,4 +32,4 @@ binary-arch: build install
 	dh_builddeb -a
 
 binary: binary-indep binary-arch
-.PHONY: build clean binary-indep binary-arch binary install 
+.PHONY: build clean binary-indep binary-arch binary install
