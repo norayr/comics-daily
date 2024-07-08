@@ -100,6 +100,7 @@ begin
   UpdateLayout; // Adjust the layout based on the initial form size
 
   // Create and start the rotation handler
+  WriteLn('Initializing rotation handler');
   FRotationHandler := TX11Rotation.Create(TWindow(Handle));
   FRotationHandler.OnRotation := @HandleRotation;
   FRotationHandler.Start;
@@ -449,6 +450,9 @@ begin
   FNextComicUrl := FGoComics.NextComicUrl;
   FFirstComicUrl := FGoComics.FirstComicUrl;
   FLastComicUrl := FGoComics.LastComicUrl;
+
+  // Show the navigation URLs for debugging purposes
+  //ShowMessage('Prev: ' + FPrevComicUrl + ' Next: ' + FNextComicUrl + ' First: ' + FFirstComicUrl + ' Last: ' + FLastComicUrl);
 end;
 
 end.
