@@ -29,6 +29,17 @@ type
 
   TRotationEvent = procedure(Sender: TObject; IsPortrait: Boolean) of object;
 
+  TX11Rotation = class;
+
+  TRotationThread = class(TThread)
+  private
+    FOwner: TX11Rotation;
+  protected
+    procedure Execute; override;
+  public
+    constructor Create(AOwner: TX11Rotation);
+  end;
+
   TX11Rotation = class
   private
     FDisplay: PDisplay;
@@ -38,10 +49,11 @@ type
     FRunning: Boolean;
     FRotationAtom: culong; // Use culong for Atom
     FOnRotation: TRotationEvent;
+    FThread: TRotationThread;
     procedure HandleScreenChangeEvent(const Event: PXRRScreenChangeNotifyEvent);
-
   public
     constructor Create(AWindow: TWindow);
+    destructor Destroy; override;
     procedure Start;
     procedure Stop;
     procedure SetRotationAtom(IsPortrait: Boolean);
@@ -60,6 +72,12 @@ begin
   FScreen := DefaultScreen(FDisplay);
   FRootWindow := RootWindow(FDisplay, FScreen);
   FRotationAtom := XInternAtom(FDisplay, '_HILDON_PORTRAIT_MODE_SUPPORT', False);
+end;
+
+destructor TX11Rotation.Destroy;
+begin
+  Stop;
+  inherited Destroy;
 end;
 
 procedure TX11Rotation.HandleScreenChangeEvent(const Event: PXRRScreenChangeNotifyEvent);
@@ -86,31 +104,53 @@ begin
 end;
 
 procedure TX11Rotation.Start;
-var
-  Event: TXEvent;
-  XRRNotifyEvent: PXRRScreenChangeNotifyEvent;
 begin
   if not FRunning then
   begin
-    XRRSelectInput(FDisplay, FRootWindow, RRScreenChangeNotifyMask);
     FRunning := True;
-    WriteLn('Started listening for screen change events');
-    while FRunning do
-    begin
-      XNextEvent(FDisplay, @Event);
-      if Event._type = RRScreenChangeNotify then
-      begin
-        XRRNotifyEvent := PXRRScreenChangeNotifyEvent(@Event);
-        HandleScreenChangeEvent(XRRNotifyEvent);
-      end;
-    end;
+    FThread := TRotationThread.Create(Self);
+    FThread.Start;
   end;
 end;
 
 procedure TX11Rotation.Stop;
 begin
-  FRunning := False;
-  XCloseDisplay(FDisplay);
+  if FRunning then
+  begin
+    FRunning := False;
+    if Assigned(FThread) then
+    begin
+      FThread.WaitFor;
+      FThread.Free;
+      FThread := nil;
+    end;
+    XCloseDisplay(FDisplay);
+  end;
+end;
+
+constructor TRotationThread.Create(AOwner: TX11Rotation);
+begin
+  inherited Create(True);
+  FOwner := AOwner;
+  FreeOnTerminate := False;
+end;
+
+procedure TRotationThread.Execute;
+var
+  Event: TXEvent;
+  XRRNotifyEvent: PXRRScreenChangeNotifyEvent;
+begin
+  XRRSelectInput(FOwner.FDisplay, FOwner.FRootWindow, RRScreenChangeNotifyMask);
+  WriteLn('Started listening for screen change events');
+  while FOwner.FRunning do
+  begin
+    XNextEvent(FOwner.FDisplay, @Event);
+    if Event._type = RRScreenChangeNotify then
+    begin
+      XRRNotifyEvent := PXRRScreenChangeNotifyEvent(@Event);
+      FOwner.HandleScreenChangeEvent(XRRNotifyEvent);
+    end;
+  end;
 end;
 
 end.

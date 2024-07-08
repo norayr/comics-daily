@@ -9,6 +9,9 @@ uses
   FPImage, FPReadJPEG, FPReadPNG, FPReadGIF, FPWriteBMP, LazFileUtils,
   IntfGraphics, Math, x11rotation, GoComicsAPI, x;
 
+const
+  comic_section = 0.8;
+
 type
   { TForm1 }
 
@@ -100,16 +103,23 @@ begin
   UpdateLayout; // Adjust the layout based on the initial form size
 
   // Create and start the rotation handler
-  WriteLn('Initializing rotation handler');
   FRotationHandler := TX11Rotation.Create(TWindow(Handle));
   FRotationHandler.OnRotation := @HandleRotation;
   FRotationHandler.Start;
 end;
 
-procedure TForm1.FormResize(Sender: TObject);
+procedure TForm1.HandleRotation(Sender: TObject; IsPortrait: Boolean);
 begin
-  UpdateLayout; // Adjust the layout when the form is resized
-  ResizeImage; // Resize the image when the form is resized
+  if IsPortrait then
+    //Form1.Caption := 'Portrait mode'
+    writeln('portrait mode')
+  else
+    writeln('landscape mode');
+    //Form1.Caption := 'Landscape mode';
+
+  // Adjust the UI layout here based on the rotation
+  UpdateLayout;
+  FRotationHandler.SetRotationAtom(IsPortrait);
 end;
 
 procedure TForm1.ComboBox1Change(Sender: TObject);
@@ -182,16 +192,10 @@ begin
   end;
 end;
 
-procedure TForm1.HandleRotation(Sender: TObject; IsPortrait: Boolean);
+procedure TForm1.FormResize(Sender: TObject);
 begin
-  if IsPortrait then
-    writeln('portrait mode')
-  else
-    writeln('landscape mode');
-
-  // Adjust the UI layout here based on the rotation
-  UpdateLayout;
-  FRotationHandler.SetRotationAtom(IsPortrait);
+  UpdateLayout; // Adjust the layout when the form is resized
+  ResizeImage; // Resize the image when the form is resized
 end;
 
 procedure TForm1.LoadLatestComic(const Comic: string);
@@ -404,8 +408,19 @@ procedure TForm1.UpdateButtonStates;
 begin
   PrevButton.Enabled := FGoComics.PrevComicUrl <> '';
   NextButton.Enabled := FGoComics.NextComicUrl <> '';
+  //firstButton.Enabled := FCurrentDate <> FGoComics.FirstComicDate;
   firstButton.Enabled := PrevButton.Enabled;
   lastButton.Enabled := NextButton.Enabled;
+
+  {if NextButton.Enabled = False then
+  begin
+    lastButton.Enabled := False
+  end
+ else
+  begin
+  lastButton.Enabled := FCurrentDate <> FGoComics.LastComicDate
+  end;
+  }
 end;
 
 procedure TForm1.UpdateLayout;
@@ -418,7 +433,7 @@ begin
   FormHeight := ClientHeight;
 
   // Resize and position Image1
-  Image1.SetBounds(0, 0, FormWidth, Round(FormHeight * 0.8));
+  Image1.SetBounds(0, 0, FormWidth, Round(FormHeight * comic_section));
 
   // Position ShowComicButton
   ShowComicButton.Left := FormWidth - lastButton.Width - ShowComicButton.Width - Margin - Margin;
