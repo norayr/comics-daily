@@ -13,54 +13,76 @@ type
   TX11Rotation = class(TThread)
   private
     FOnRotation: TRotationEvent;
+    FMainWindow: TWindow;
+    FDisplay: PDisplay;
     procedure DoRotation(IsPortrait: Boolean);
+    procedure SetRotationAtom(IsPortrait: Boolean);
   protected
     procedure Execute; override;
   public
-    constructor Create;
+    constructor Create(MainWindow: TWindow);
     property OnRotation: TRotationEvent read FOnRotation write FOnRotation;
   end;
 
 implementation
 
-constructor TX11Rotation.Create;
+constructor TX11Rotation.Create(MainWindow: TWindow);
 begin
   inherited Create(True); // Create suspended
   FreeOnTerminate := True;
+  FMainWindow := MainWindow;
+end;
+
+procedure TX11Rotation.SetRotationAtom(IsPortrait: Boolean);
+const
+  ATOM_NAME = '_HILDON_PORTRAIT_MODE_SUPPORT';
+var
+  atom: TAtom;
+  value: TAtom;
+begin
+  atom := XInternAtom(FDisplay, PChar(ATOM_NAME), False);
+  if atom = None then
+  begin
+    WriteLn('Failed to create X atom');
+    Exit;
+  end;
+
+  value := IfThen(IsPortrait, 1, 0);
+  XChangeProperty(FDisplay, FMainWindow, atom, XA_ATOM, 32, PropModeReplace, @value, 1);
 end;
 
 procedure TX11Rotation.DoRotation(IsPortrait: Boolean);
 begin
+  SetRotationAtom(IsPortrait);
   if Assigned(FOnRotation) then
     FOnRotation(Self, IsPortrait);
 end;
 
 procedure TX11Rotation.Execute;
 var
-  display: PDisplay;
   eventBase, errorBase: cint;
   rootWindow: TWindow;
   event: TXEvent;
   xrrEvent: PXRRScreenChangeNotifyEvent;
   eventCount: integer;
 begin
-  display := XOpenDisplay(nil);
-  if display = nil then Exit;
+  FDisplay := XOpenDisplay(nil);
+  if FDisplay = nil then Exit;
 
-  if not XRRQueryExtension(display, @eventBase, @errorBase) then
+  if not XRRQueryExtension(FDisplay, @eventBase, @errorBase) then
   begin
-    XCloseDisplay(display);
+    XCloseDisplay(FDisplay);
     Exit;
   end;
 
-  rootWindow := XRootWindow(display, XDefaultScreen(display));
-  XRRSelectInput(display, rootWindow, RRScreenChangeNotifyMask);
+  rootWindow := XRootWindow(FDisplay, XDefaultScreen(FDisplay));
+  XRRSelectInput(FDisplay, rootWindow, RRScreenChangeNotifyMask);
 
   eventCount := 0;
 
   while not Terminated do
   begin
-    XNextEvent(display, @event);
+    XNextEvent(FDisplay, @event);
     if event._type = eventBase + RRScreenChangeNotify then
     begin
       Inc(eventCount);
@@ -72,7 +94,7 @@ begin
     end;
   end;
 
-  XCloseDisplay(display);
+  XCloseDisplay(FDisplay);
 end;
 
 end.
