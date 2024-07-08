@@ -9,7 +9,7 @@
         <IsPartOfProject Value="True"/>
         <EditorIndex Value="-1"/>
         <CursorPos X="9" Y="13"/>
-        <UsageCount Value="102"/>
+        <UsageCount Value="105"/>
       </Unit>
       <Unit>
         <Filename Value="unit1.pas"/>
@@ -18,9 +18,9 @@
         <HasResources Value="True"/>
         <ResourceBaseClass Value="Form"/>
         <UnitName Value="Unit1"/>
-        <TopLine Value="382"/>
-        <CursorPos X="45" Y="392"/>
-        <UsageCount Value="102"/>
+        <TopLine Value="433"/>
+        <CursorPos Y="472"/>
+        <UsageCount Value="105"/>
         <Loaded Value="True"/>
         <LoadedDesigner Value="True"/>
       </Unit>
@@ -31,7 +31,7 @@
         <EditorIndex Value="2"/>
         <TopLine Value="115"/>
         <CursorPos X="13" Y="142"/>
-        <UsageCount Value="102"/>
+        <UsageCount Value="105"/>
         <Loaded Value="True"/>
       </Unit>
       <Unit>
@@ -151,83 +151,13 @@
         <Filename Value="x11rotation.pas"/>
         <IsVisibleTab Value="True"/>
         <EditorIndex Value="1"/>
-        <UsageCount Value="10"/>
+        <TopLine Value="91"/>
+        <CursorPos Y="130"/>
+        <UsageCount Value="12"/>
         <Loaded Value="True"/>
       </Unit>
     </Units>
     <JumpHistory HistoryIndex="29">
-      <Position>
-        <Filename Value="gocomicsapi.pas"/>
-        <Caret Line="137" Column="24" TopLine="110"/>
-      </Position>
-      <Position>
-        <Filename Value="gocomicsapi.pas"/>
-        <Caret Line="133" TopLine="110"/>
-      </Position>
-      <Position>
-        <Filename Value="gocomicsapi.pas"/>
-        <Caret Line="136" Column="11" TopLine="110"/>
-      </Position>
-      <Position>
-        <Filename Value="gocomicsapi.pas"/>
-        <Caret Line="122" TopLine="110"/>
-      </Position>
-      <Position>
-        <Filename Value="gocomicsapi.pas"/>
-        <Caret Line="124" TopLine="110"/>
-      </Position>
-      <Position>
-        <Filename Value="gocomicsapi.pas"/>
-        <Caret Line="125" TopLine="110"/>
-      </Position>
-      <Position>
-        <Filename Value="gocomicsapi.pas"/>
-        <Caret Line="127" TopLine="110"/>
-      </Position>
-      <Position>
-        <Filename Value="gocomicsapi.pas"/>
-        <Caret Line="128" TopLine="110"/>
-      </Position>
-      <Position>
-        <Filename Value="gocomicsapi.pas"/>
-        <Caret Line="130" TopLine="110"/>
-      </Position>
-      <Position>
-        <Filename Value="gocomicsapi.pas"/>
-        <Caret Line="132" TopLine="110"/>
-      </Position>
-      <Position>
-        <Filename Value="gocomicsapi.pas"/>
-        <Caret Line="134" TopLine="110"/>
-      </Position>
-      <Position>
-        <Filename Value="gocomicsapi.pas"/>
-        <Caret Line="135" Column="24" TopLine="110"/>
-      </Position>
-      <Position>
-        <Filename Value="gocomicsapi.pas"/>
-        <Caret Line="122" TopLine="110"/>
-      </Position>
-      <Position>
-        <Filename Value="gocomicsapi.pas"/>
-        <Caret Line="124" TopLine="110"/>
-      </Position>
-      <Position>
-        <Filename Value="gocomicsapi.pas"/>
-        <Caret Line="125" TopLine="110"/>
-      </Position>
-      <Position>
-        <Filename Value="gocomicsapi.pas"/>
-        <Caret Line="126" Column="23" TopLine="110"/>
-      </Position>
-      <Position>
-        <Filename Value="gocomicsapi.pas"/>
-        <Caret Line="128" TopLine="110"/>
-      </Position>
-      <Position>
-        <Filename Value="gocomicsapi.pas"/>
-        <Caret Line="130" TopLine="110"/>
-      </Position>
       <Position>
         <Filename Value="gocomicsapi.pas"/>
         <Caret Line="187" TopLine="148"/>
@@ -275,6 +205,78 @@
       <Position>
         <Filename Value="unit1.pas"/>
         <Caret Line="447" Column="16" TopLine="412"/>
+      </Position>
+      <Position>
+        <Filename Value="unit1.pas"/>
+        <Caret Line="35" Column="54"/>
+      </Position>
+      <Position>
+        <Filename Value="x11rotation.pas"/>
+        <Caret Line="7" Column="14"/>
+      </Position>
+      <Position>
+        <Filename Value="x11rotation.pas"/>
+        <Caret Line="44" Column="32" TopLine="41"/>
+      </Position>
+      <Position>
+        <Filename Value="unit1.pas"/>
+        <Caret Line="421" Column="18" TopLine="416"/>
+      </Position>
+      <Position>
+        <Filename Value="unit1.pas"/>
+        <Caret Line="195" Column="31" TopLine="185"/>
+      </Position>
+      <Position>
+        <Filename Value="unit1.pas"/>
+        <Caret Line="472" TopLine="433"/>
+      </Position>
+      <Position>
+        <Filename Value="x11rotation.pas"/>
+        <Caret Line="51" Column="90" TopLine="30"/>
+      </Position>
+      <Position>
+        <Filename Value="x11rotation.pas"/>
+        <Caret Line="49" Column="89" TopLine="30"/>
+      </Position>
+      <Position>
+        <Filename Value="unit1.pas"/>
+        <Caret Line="439" Column="8" TopLine="434"/>
+      </Position>
+      <Position>
+        <Filename Value="unit1.pas"/>
+        <Caret Line="472" TopLine="433"/>
+      </Position>
+      <Position>
+        <Filename Value="x11rotation.pas"/>
+        <Caret Line="60" Column="30" TopLine="53"/>
+      </Position>
+      <Position>
+        <Filename Value="unit1.pas"/>
+        <Caret Line="439" Column="4" TopLine="434"/>
+      </Position>
+      <Position>
+        <Filename Value="unit1.pas"/>
+        <Caret Line="472" TopLine="433"/>
+      </Position>
+      <Position>
+        <Filename Value="x11rotation.pas"/>
+        <Caret Line="130" TopLine="91"/>
+      </Position>
+      <Position>
+        <Filename Value="unit1.pas"/>
+        <Caret Line="107" Column="61" TopLine="88"/>
+      </Position>
+      <Position>
+        <Filename Value="unit1.pas"/>
+        <Caret Line="472" TopLine="433"/>
+      </Position>
+      <Position>
+        <Filename Value="x11rotation.pas"/>
+        <Caret Line="26" Column="8"/>
+      </Position>
+      <Position>
+        <Filename Value="x11rotation.pas"/>
+        <Caret Line="18" Column="29"/>
       </Position>
     </JumpHistory>
     <RunParams>

@@ -7,7 +7,7 @@ interface
 uses
   Classes, SysUtils, Forms, Controls, Graphics, Dialogs, StdCtrls, ExtCtrls,
   FPImage, FPReadJPEG, FPReadPNG, FPReadGIF, FPWriteBMP,
-  LazFileUtils, IntfGraphics, Math,
+  LazFileUtils, IntfGraphics, Math, x11rotation,
   GoComicsAPI;
 
 const
@@ -47,6 +47,7 @@ type
     FNextComicUrl: string;
     FFirstComicUrl: string;
     FLastComicUrl: string;
+    FRotationHandler: TX11Rotation;
     procedure LoadImageFromStream(Stream: TMemoryStream; const ContentType: string);
     procedure ResizeImage;
     function GetComicsDailyDir: string;
@@ -56,6 +57,7 @@ type
     procedure UpdateButtonStates;
     procedure UpdateLayout;
     procedure UpdateNavigationUrls;
+    procedure HandleRotation(Sender: TObject; IsPortrait: Boolean);
   public
 
   end;
@@ -100,6 +102,22 @@ begin
   lastButton.Enabled := False;
   SaveComicButton.Enabled := False;
   UpdateLayout; // Adjust the layout based on the initial form size
+
+  // Create and start the rotation handler
+  FRotationHandler := TX11Rotation.Create(Handle);
+  FRotationHandler.OnRotation := @HandleRotation;
+  FRotationHandler.Start;
+end;
+
+procedure TForm1.HandleRotation(Sender: TObject; IsPortrait: Boolean);
+begin
+  if IsPortrait then
+    Form1.Caption := 'Portrait mode'
+  else
+    Form1.Caption := 'Landscape mode';
+
+  // Adjust the UI layout here based on the rotation
+  UpdateLayout;
 end;
 
 procedure TForm1.ComboBox1Change(Sender: TObject);

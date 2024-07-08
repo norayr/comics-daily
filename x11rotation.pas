@@ -5,7 +5,7 @@ unit x11rotation;
 interface
 
 uses
-  Classes, SysUtils, Forms, ctypes, xlib, x, xrandr, unixtype;
+  Classes, SysUtils, Forms, xlib, x, xrandr, unixtype;
 
 type
   TRotationEvent = procedure(Sender: TObject; IsPortrait: Boolean) of object;
@@ -15,8 +15,9 @@ type
     FOnRotation: TRotationEvent;
     FMainWindow: TWindow;
     FDisplay: PDisplay;
-    procedure DoRotation(IsPortrait: Boolean);
-    procedure SetRotationAtom(IsPortrait: Boolean);
+    FIsPortrait: Boolean;
+    procedure DoRotation;
+    procedure SetRotationAtom;
   protected
     procedure Execute; override;
   public
@@ -26,6 +27,29 @@ type
 
 implementation
 
+const
+  XA_ATOM = 4; // Defining XA_ATOM if not available
+
+type
+  PXRRScreenChangeNotifyEvent = ^TXRRScreenChangeNotifyEvent;
+  TXRRScreenChangeNotifyEvent = record
+    _type: cint;
+    serial: culong;
+    send_event: TBool;
+    display: PDisplay;
+    window: TWindow;
+    root: TWindow;
+    timestamp: TTime;
+    config_timestamp: TTime;
+    size_index: cint;
+    subpixel_order: cint;
+    rotation: cuint;
+    width: cint;
+    height: cint;
+    mwidth: cint;
+    mheight: cint;
+  end;
+
 constructor TX11Rotation.Create(MainWindow: TWindow);
 begin
   inherited Create(True); // Create suspended
@@ -33,12 +57,12 @@ begin
   FMainWindow := MainWindow;
 end;
 
-procedure TX11Rotation.SetRotationAtom(IsPortrait: Boolean);
+procedure TX11Rotation.SetRotationAtom;
 const
   ATOM_NAME = '_HILDON_PORTRAIT_MODE_SUPPORT';
 var
   atom: TAtom;
-  value: TAtom;
+  value: LongInt; // Use LongInt to match the expected data type
 begin
   atom := XInternAtom(FDisplay, PChar(ATOM_NAME), False);
   if atom = None then
@@ -47,15 +71,19 @@ begin
     Exit;
   end;
 
-  value := IfThen(IsPortrait, 1, 0);
-  XChangeProperty(FDisplay, FMainWindow, atom, XA_ATOM, 32, PropModeReplace, @value, 1);
+  if FIsPortrait then
+    value := 1
+  else
+    value := 0;
+
+  XChangeProperty(FDisplay, FMainWindow, atom, XA_ATOM, 32, PropModeReplace, PByte(@value), 1);
 end;
 
-procedure TX11Rotation.DoRotation(IsPortrait: Boolean);
+procedure TX11Rotation.DoRotation;
 begin
-  SetRotationAtom(IsPortrait);
+  SetRotationAtom;
   if Assigned(FOnRotation) then
-    FOnRotation(Self, IsPortrait);
+    FOnRotation(Self, FIsPortrait);
 end;
 
 procedure TX11Rotation.Execute;
@@ -89,7 +117,8 @@ begin
       if (eventCount mod 3) = 0 then
       begin
         xrrEvent := PXRRScreenChangeNotifyEvent(@event);
-        Synchronize(@DoRotation, xrrEvent^.width < xrrEvent^.height);
+        FIsPortrait := xrrEvent^.width < xrrEvent^.height;
+        Synchronize(@DoRotation);
       end;
     end;
   end;
