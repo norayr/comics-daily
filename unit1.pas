@@ -7,7 +7,8 @@ interface
 uses
   Classes, SysUtils, Forms, Controls, Graphics, Dialogs, StdCtrls, ExtCtrls,
   FPImage, FPReadJPEG, FPReadPNG, FPReadGIF, FPWriteBMP,
-  LazFileUtils, IntfGraphics, Math, x11rotation,
+  LazFileUtils, IntfGraphics, Math,
+  x11rotation,  x,
   GoComicsAPI;
 
 const
@@ -104,7 +105,7 @@ begin
   UpdateLayout; // Adjust the layout based on the initial form size
 
   // Create and start the rotation handler
-  FRotationHandler := TX11Rotation.Create(Handle);
+  FRotationHandler := TX11Rotation.Create(TWindow(Handle));
   FRotationHandler.OnRotation := @HandleRotation;
   FRotationHandler.Start;
 end;
