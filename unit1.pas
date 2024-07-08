@@ -7,8 +7,7 @@ interface
 uses
   Classes, SysUtils, Forms, Controls, Graphics, Dialogs, StdCtrls, ExtCtrls,
   FPImage, FPReadJPEG, FPReadPNG, FPReadGIF, FPWriteBMP,
-  LazFileUtils, IntfGraphics, Math,
-  x11rotation,  x,
+  LazFileUtils, IntfGraphics, Math, x, x11rotation,
   GoComicsAPI;
 
 const
@@ -32,7 +31,9 @@ type
     procedure firstButtonClick(Sender: TObject);
     procedure lastButtonClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
+    procedure FormShow(Sender: TObject);  // Added FormShow event handler
     procedure FormResize(Sender: TObject);
+    procedure FormWindowStateChange(Sender: TObject); // Added WindowStateChange handler
     procedure ShowComicButtonClick(Sender: TObject);
     procedure SaveComicButtonClick(Sender: TObject);
     procedure PrevButtonClick(Sender: TObject);
@@ -104,10 +105,23 @@ begin
   SaveComicButton.Enabled := False;
   UpdateLayout; // Adjust the layout based on the initial form size
 
+  // Assign FormWindowStateChange event handler
+  OnWindowStateChange := @FormWindowStateChange;
+end;
+
+procedure TForm1.FormShow(Sender: TObject);
+begin
   // Create and start the rotation handler
   FRotationHandler := TX11Rotation.Create(TWindow(Handle));
   FRotationHandler.OnRotation := @HandleRotation;
   FRotationHandler.Start;
+end;
+
+procedure TForm1.FormWindowStateChange(Sender: TObject);
+begin
+  // Set rotation atom when window state changes
+  if FRotationHandler <> nil then
+    FRotationHandler.SetRotationAtom;
 end;
 
 procedure TForm1.HandleRotation(Sender: TObject; IsPortrait: Boolean);

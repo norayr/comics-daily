@@ -17,12 +17,12 @@ type
     FDisplay: PDisplay;
     FIsPortrait: Boolean;
     procedure DoRotation;
-    procedure SetRotationAtom;
   protected
     procedure Execute; override;
   public
     constructor Create(MainWindow: TWindow);
     property OnRotation: TRotationEvent read FOnRotation write FOnRotation;
+    procedure SetRotationAtom;
   end;
 
 implementation
@@ -64,6 +64,12 @@ var
   atom: TAtom;
   value: LongInt; // Use LongInt to match the expected data type
 begin
+  if FMainWindow = 0 then
+  begin
+    WriteLn('SetRotationAtom: Invalid main window');
+    Exit;
+  end;
+
   atom := XInternAtom(FDisplay, PChar(ATOM_NAME), False);
   if atom = None then
   begin
@@ -76,7 +82,9 @@ begin
   else
     value := 0;
 
+  WriteLn('Setting rotation atom: ', ATOM_NAME, ' to ', value);
   XChangeProperty(FDisplay, FMainWindow, atom, XA_ATOM, 32, PropModeReplace, PByte(@value), 1);
+  XFlush(FDisplay); // Ensure the command is sent to the X server
 end;
 
 procedure TX11Rotation.DoRotation;
@@ -95,10 +103,17 @@ var
   eventCount: integer;
 begin
   FDisplay := XOpenDisplay(nil);
-  if FDisplay = nil then Exit;
+  if FDisplay = nil then
+  begin
+    WriteLn('Unable to open X display');
+    Exit;
+  end;
+
+  XSynchronize(FDisplay, True); // Make X11 synchronous for debugging
 
   if not XRRQueryExtension(FDisplay, @eventBase, @errorBase) then
   begin
+    WriteLn('XRandR extension not supported');
     XCloseDisplay(FDisplay);
     Exit;
   end;
@@ -110,15 +125,24 @@ begin
 
   while not Terminated do
   begin
-    XNextEvent(FDisplay, @event);
-    if event._type = eventBase + RRScreenChangeNotify then
-    begin
-      Inc(eventCount);
-      if (eventCount mod 3) = 0 then
+    try
+      XNextEvent(FDisplay, @event);
+      if event._type = eventBase + RRScreenChangeNotify then
       begin
-        xrrEvent := PXRRScreenChangeNotifyEvent(@event);
-        FIsPortrait := xrrEvent^.width < xrrEvent^.height;
-        Synchronize(@DoRotation);
+        Inc(eventCount);
+        if (eventCount mod 3) = 0 then
+        begin
+          xrrEvent := PXRRScreenChangeNotifyEvent(@event);
+          FIsPortrait := xrrEvent^.width < xrrEvent^.height;
+          WriteLn('Screen change detected: ', xrrEvent^.width, 'x', xrrEvent^.height, ' Rotation: ', xrrEvent^.rotation);
+          Synchronize(@DoRotation);
+        end;
+      end;
+    except
+      on E: Exception do
+      begin
+        WriteLn('Exception in X11 event loop: ', E.Message);
+        Terminate; // Exit the loop if there's an exception
       end;
     end;
   end;
