@@ -18,7 +18,6 @@
         <HasResources Value="True"/>
         <ResourceBaseClass Value="Form"/>
         <UnitName Value="Unit1"/>
-        <IsVisibleTab Value="True"/>
         <TopLine Value="382"/>
         <CursorPos X="45" Y="392"/>
         <UsageCount Value="102"/>
@@ -29,7 +28,7 @@
         <Filename Value="gocomicsapi.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="GoComicsAPI"/>
-        <EditorIndex Value="1"/>
+        <EditorIndex Value="2"/>
         <TopLine Value="115"/>
         <CursorPos X="13" Y="142"/>
         <UsageCount Value="102"/>
@@ -147,6 +146,13 @@
         <TopLine Value="178"/>
         <CursorPos Y="191"/>
         <UsageCount Value="8"/>
+      </Unit>
+      <Unit>
+        <Filename Value="x11rotation.pas"/>
+        <IsVisibleTab Value="True"/>
+        <EditorIndex Value="1"/>
+        <UsageCount Value="10"/>
+        <Loaded Value="True"/>
       </Unit>
     </Units>
     <JumpHistory HistoryIndex="29">
