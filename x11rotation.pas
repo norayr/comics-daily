@@ -5,32 +5,11 @@ unit x11rotation;
 interface
 
 uses
-  Classes, SysUtils, Forms, xlib, x, xrandr, unixtype;
+  Classes, SysUtils, Forms, xlib, x, xrandr, unixtype, ctypes;
 
 type
   TRotationEvent = procedure(Sender: TObject; IsPortrait: Boolean) of object;
 
-  TX11Rotation = class(TThread)
-  private
-    FOnRotation: TRotationEvent;
-    FMainWindow: TWindow;
-    FDisplay: PDisplay;
-    FIsPortrait: Boolean;
-    procedure DoRotation;
-  protected
-    procedure Execute; override;
-  public
-    constructor Create(MainWindow: TWindow);
-    property OnRotation: TRotationEvent read FOnRotation write FOnRotation;
-    procedure SetRotationAtom;
-  end;
-
-implementation
-
-const
-  XA_ATOM = 4; // Defining XA_ATOM if not available
-
-type
   PXRRScreenChangeNotifyEvent = ^TXRRScreenChangeNotifyEvent;
   TXRRScreenChangeNotifyEvent = record
     _type: cint;
@@ -50,104 +29,102 @@ type
     mheight: cint;
   end;
 
+  TX11Rotation = class(TThread)
+  private
+    FOnRotation: TRotationEvent;
+    FMainWindow: TWindow;
+    FDisplay: PDisplay;
+    FIsPortrait: Boolean;
+    procedure DoRotation;
+    procedure LogRotationEvent(const Message: string);
+  protected
+    procedure Execute; override;
+  public
+    constructor Create(MainWindow: TWindow);
+    property OnRotation: TRotationEvent read FOnRotation write FOnRotation;
+    procedure SetRotationAtom(IsPortrait: Boolean);
+  end;
+
+implementation
+
+const
+  XA_CARDINAL = 6;
+
+{ TX11Rotation }
+
 constructor TX11Rotation.Create(MainWindow: TWindow);
 begin
   inherited Create(True); // Create suspended
-  FreeOnTerminate := True;
   FMainWindow := MainWindow;
-end;
-
-procedure TX11Rotation.SetRotationAtom;
-const
-  ATOM_NAME = '_HILDON_PORTRAIT_MODE_SUPPORT';
-var
-  atom: TAtom;
-  value: LongInt; // Use LongInt to match the expected data type
-begin
-  if FMainWindow = 0 then
-  begin
-    WriteLn('SetRotationAtom: Invalid main window');
-    Exit;
-  end;
-
-  atom := XInternAtom(FDisplay, PChar(ATOM_NAME), False);
-  if atom = None then
-  begin
-    WriteLn('Failed to create X atom');
-    Exit;
-  end;
-
-  if FIsPortrait then
-    value := 1
-  else
-    value := 0;
-
-  WriteLn('Setting rotation atom: ', ATOM_NAME, ' to ', value);
-  XChangeProperty(FDisplay, FMainWindow, atom, XA_ATOM, 32, PropModeReplace, PByte(@value), 1);
-  XFlush(FDisplay); // Ensure the command is sent to the X server
-end;
-
-procedure TX11Rotation.DoRotation;
-begin
-  SetRotationAtom;
-  if Assigned(FOnRotation) then
-    FOnRotation(Self, FIsPortrait);
+  FDisplay := XOpenDisplay(nil);
+  FIsPortrait := True;
 end;
 
 procedure TX11Rotation.Execute;
 var
-  eventBase, errorBase: cint;
-  rootWindow: TWindow;
-  event: TXEvent;
+  Event: TXEvent;
   xrrEvent: PXRRScreenChangeNotifyEvent;
-  eventCount: integer;
+  EventBase, ErrorBase: cint;
 begin
-  FDisplay := XOpenDisplay(nil);
   if FDisplay = nil then
   begin
-    WriteLn('Unable to open X display');
+    LogRotationEvent('Unable to open X display');
     Exit;
   end;
 
-  XSynchronize(FDisplay, True); // Make X11 synchronous for debugging
-
-  if not XRRQueryExtension(FDisplay, @eventBase, @errorBase) then
+  if not XRRQueryExtension(FDisplay, @EventBase, @ErrorBase) then
   begin
-    WriteLn('XRandR extension not supported');
+    LogRotationEvent('XRandR extension not supported');
     XCloseDisplay(FDisplay);
     Exit;
   end;
 
-  rootWindow := XRootWindow(FDisplay, XDefaultScreen(FDisplay));
-  XRRSelectInput(FDisplay, rootWindow, RRScreenChangeNotifyMask);
-
-  eventCount := 0;
+  XRRSelectInput(FDisplay, XRootWindow(FDisplay, XDefaultScreen(FDisplay)), RRScreenChangeNotifyMask);
+  LogRotationEvent('Started listening for screen change events');
 
   while not Terminated do
   begin
-    try
-      XNextEvent(FDisplay, @event);
-      if event._type = eventBase + RRScreenChangeNotify then
-      begin
-        Inc(eventCount);
-        if (eventCount mod 3) = 0 then
-        begin
-          xrrEvent := PXRRScreenChangeNotifyEvent(@event);
-          FIsPortrait := xrrEvent^.width < xrrEvent^.height;
-          WriteLn('Screen change detected: ', xrrEvent^.width, 'x', xrrEvent^.height, ' Rotation: ', xrrEvent^.rotation);
-          Synchronize(@DoRotation);
-        end;
-      end;
-    except
-      on E: Exception do
-      begin
-        WriteLn('Exception in X11 event loop: ', E.Message);
-        Terminate; // Exit the loop if there's an exception
-      end;
+    XNextEvent(FDisplay, @Event);
+    if Event._type = EventBase + RRScreenChangeNotify then
+    begin
+      xrrEvent := PXRRScreenChangeNotifyEvent(@Event);
+      FIsPortrait := (xrrEvent^.rotation = RR_Rotate_0) or (xrrEvent^.rotation = RR_Rotate_180);
+      Synchronize(@DoRotation);
     end;
   end;
 
   XCloseDisplay(FDisplay);
+end;
+
+procedure TX11Rotation.DoRotation;
+begin
+  if Assigned(FOnRotation) then
+  begin
+    LogRotationEvent(Format('Rotation detected: %s', [BoolToStr(FIsPortrait, True)]));
+    FOnRotation(Self, FIsPortrait);
+  end;
+end;
+
+procedure TX11Rotation.SetRotationAtom(IsPortrait: Boolean);
+var
+  Atom: TAtom;
+  Value: cuint;
+begin
+  if FDisplay = nil then
+    Exit;
+
+  Atom := XInternAtom(FDisplay, '_HILDON_PORTRAIT_MODE_SUPPORT', False);
+  if IsPortrait then
+    Value := 1
+  else
+    Value := 0;
+  XChangeProperty(FDisplay, FMainWindow, Atom, XA_CARDINAL, 32, PropModeReplace, @Value, 1);
+  LogRotationEvent(Format('Set rotation atom: %d', [Value]));
+end;
+
+procedure TX11Rotation.LogRotationEvent(const Message: string);
+begin
+  WriteLn(Message);
 end;
 
 end.
