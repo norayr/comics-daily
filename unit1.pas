@@ -30,6 +30,8 @@ type
     procedure lastButtonClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure FormResize(Sender: TObject);
+    procedure FormShow(Sender: TObject);
+    procedure FormClose(Sender: TObject; var CloseAction: TCloseAction);
     procedure ShowComicButtonClick(Sender: TObject);
     procedure SaveComicButtonClick(Sender: TObject);
     procedure PrevButtonClick(Sender: TObject);
@@ -102,24 +104,43 @@ begin
   SaveComicButton.Enabled := False;
   UpdateLayout; // Adjust the layout based on the initial form size
 
+  // Ensure FormShow event is connected
+  Self.OnShow := @FormShow;
+  Self.OnClose := @FormClose;
+end;
+
+procedure TForm1.FormShow(Sender: TObject);
+begin
   // Create and start the rotation handler
-  FRotationHandler := TX11Rotation.Create(TWindow(Handle));
-  FRotationHandler.OnRotation := @HandleRotation;
-  FRotationHandler.Start;
+  if not Assigned(FRotationHandler) then
+  begin
+    FRotationHandler := TX11Rotation.Create(TWindow(Handle));
+    FRotationHandler.OnRotation := @HandleRotation;
+    FRotationHandler.Start;
+    WriteLn('FormShow: Started rotation handler');
+  end;
+end;
+
+procedure TForm1.FormClose(Sender: TObject; var CloseAction: TCloseAction);
+begin
+  // Stop the rotation handler
+  if Assigned(FRotationHandler) then
+  begin
+    FRotationHandler.Stop;
+    FreeAndNil(FRotationHandler);
+    WriteLn('FormClose: Stopped rotation handler');
+  end;
 end;
 
 procedure TForm1.HandleRotation(Sender: TObject; IsPortrait: Boolean);
 begin
   if IsPortrait then
-    //Form1.Caption := 'Portrait mode'
-    writeln('portrait mode')
+    WriteLn('HandleRotation: Portrait mode detected')
   else
-    writeln('landscape mode');
-    //Form1.Caption := 'Landscape mode';
+    WriteLn('HandleRotation: Landscape mode detected');
 
   // Adjust the UI layout here based on the rotation
   UpdateLayout;
-  FRotationHandler.SetRotationAtom(IsPortrait);
 end;
 
 procedure TForm1.ComboBox1Change(Sender: TObject);
@@ -471,4 +492,5 @@ begin
 end;
 
 end.
+
 

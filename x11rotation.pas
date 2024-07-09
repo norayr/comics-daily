@@ -68,10 +68,14 @@ const
 constructor TX11Rotation.Create(AWindow: TWindow);
 begin
   FDisplay := XOpenDisplay(nil);
+  if FDisplay = nil then
+    raise Exception.Create('Unable to open X display');
+
   FWindow := AWindow;
   FScreen := DefaultScreen(FDisplay);
   FRootWindow := RootWindow(FDisplay, FScreen);
   FRotationAtom := XInternAtom(FDisplay, '_HILDON_PORTRAIT_MODE_SUPPORT', False);
+  WriteLn('Initialized TX11Rotation');
 end;
 
 destructor TX11Rotation.Destroy;
@@ -110,6 +114,7 @@ begin
     FRunning := True;
     FThread := TRotationThread.Create(Self);
     FThread.Start;
+    WriteLn('Started listening for screen change events');
   end;
 end;
 
@@ -120,11 +125,12 @@ begin
     FRunning := False;
     if Assigned(FThread) then
     begin
+      FThread.Terminate; // Request thread to terminate
       FThread.WaitFor;
-      FThread.Free;
-      FThread := nil;
+      FreeAndNil(FThread);
     end;
     XCloseDisplay(FDisplay);
+    WriteLn('Stopped listening for screen change events');
   end;
 end;
 
@@ -141,15 +147,19 @@ var
   XRRNotifyEvent: PXRRScreenChangeNotifyEvent;
 begin
   XRRSelectInput(FOwner.FDisplay, FOwner.FRootWindow, RRScreenChangeNotifyMask);
-  WriteLn('Started listening for screen change events');
-  while FOwner.FRunning do
+  WriteLn('Waiting for screen change events...');
+  while not Terminated do
   begin
-    XNextEvent(FOwner.FDisplay, @Event);
-    if Event._type = RRScreenChangeNotify then
+    if XPending(FOwner.FDisplay) > 0 then
     begin
-      XRRNotifyEvent := PXRRScreenChangeNotifyEvent(@Event);
-      FOwner.HandleScreenChangeEvent(XRRNotifyEvent);
+      XNextEvent(FOwner.FDisplay, @Event);
+      if Event._type = RRScreenChangeNotify then
+      begin
+        XRRNotifyEvent := PXRRScreenChangeNotifyEvent(@Event);
+        FOwner.HandleScreenChangeEvent(XRRNotifyEvent);
+      end;
     end;
+    Sleep(100); // Add a small sleep to avoid busy waiting
   end;
 end;
 
