@@ -449,6 +449,7 @@ const
   Margin = 10;
 var
   FormWidth, FormHeight: Integer;
+  ComboBoxRight, SaveButtonLeft, SaveButtonRight: Integer;
 begin
   FormWidth := ClientWidth;
   FormHeight := ClientHeight;
@@ -478,7 +479,19 @@ begin
   // Position ComboBox1
   ComboBox1.Left := Margin;
   ComboBox1.Top := SaveComicButton.Top;
+
+  // Calculate right boundaries for overlap detection
+  ComboBoxRight := ComboBox1.Left + ComboBox1.Width;
+  SaveButtonLeft := SaveComicButton.Left;
+  SaveButtonRight := SaveComicButton.Left + SaveComicButton.Width;
+
+  // Detect horizontal overlap and adjust ComboBox1 position if necessary
+  if (ComboBoxRight > SaveButtonLeft) and (ComboBox1.Left < SaveButtonRight) then
+  begin
+    ComboBox1.Top := ShowComicButton.Top - ComboBox1.Height - Margin;
+  end;
 end;
+
 
 procedure TForm1.UpdateNavigationUrls;
 begin
