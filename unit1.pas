@@ -451,8 +451,12 @@ var
   FormWidth, FormHeight: Integer;
   ComboBoxRight, SaveButtonLeft, SaveButtonRight: Integer;
 begin
+  // Use Screen dimensions for layout calculation
+  If ClientHeight > Screen.Height then begin ClientHeight := Screen.Height - margin - margin end;
+  if ClientWidth > Screen.Width then begin ClientWidth := Screen.Width end;
   FormWidth := ClientWidth;
   FormHeight := ClientHeight;
+
 
   // Resize and position Image1
   Image1.SetBounds(0, 0, FormWidth, Round(FormHeight * comic_section));
@@ -491,7 +495,6 @@ begin
     ComboBox1.Top := ShowComicButton.Top - ComboBox1.Height - Margin;
   end;
 end;
-
 
 procedure TForm1.UpdateNavigationUrls;
 begin
