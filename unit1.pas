@@ -51,8 +51,7 @@ type
     FFirstComicUrl: string;
     FLastComicUrl: string;
     //FRotationHandler: TX11Rotation;
-    FPortraitBitmap: TBitmap;   // Cached bitmap for portrait mode
-    FLandscapeBitmap: TBitmap;  // Cached bitmap for landscape mode
+    FCachedBitmap: TBitmap;   // Cached bitmap
     FIsPortrait: Boolean;       // Current orientation state
 
     procedure LoadImageFromStream(Stream: TMemoryStream; const ContentType: string);
@@ -66,7 +65,7 @@ type
     procedure UpdateNavigationUrls;
     procedure HandleRotation(Sender: TObject; IsPortrait: Boolean);
     procedure CacheImage(Bitmap: TBitmap);
-    procedure LoadCachedImage(Bitmap: TBitmap);
+    procedure LoadCachedImage;
   public
   end;
 
@@ -120,8 +119,7 @@ begin
   FPrevClientWidth := 0;
   FPrevClientHeight := 0;
 
-  FPortraitBitmap := nil;
-  FLandscapeBitmap := nil;
+  FCachedBitmap := nil;
 end;
 
 procedure TForm1.FormShow(Sender: TObject);
@@ -146,8 +144,7 @@ begin
   //  WriteLn('FormClose: Stopped rotation handler');
   //end;
 
-  FreeAndNil(FPortraitBitmap);
-  FreeAndNil(FLandscapeBitmap);
+  FreeAndNil(FCachedBitmap);
 end;
 
 procedure TForm1.HandleRotation(Sender: TObject; IsPortrait: Boolean);
@@ -172,9 +169,8 @@ begin
   FFirstComicUrl := '';
   FLastComicUrl := '';
 
-  // Clear cached images as the comic selection has changed
-  FreeAndNil(FPortraitBitmap);
-  FreeAndNil(FLandscapeBitmap);
+  // Clear cached image as the comic selection has changed
+  FreeAndNil(FCachedBitmap);
 end;
 
 procedure TForm1.ShowComicButtonClick(Sender: TObject);
@@ -447,14 +443,10 @@ procedure TForm1.ResizeImage;
 begin
   if Assigned(FComicStream) and (FComicStream.Size > 0) then
   begin
-    // Check if a cached image exists for the current orientation
-    if FIsPortrait and Assigned(FPortraitBitmap) then
+    // Check if a cached image exists
+    if Assigned(FCachedBitmap) then
     begin
-      LoadCachedImage(FPortraitBitmap);
-    end
-    else if not FIsPortrait and Assigned(FLandscapeBitmap) then
-    begin
-      LoadCachedImage(FLandscapeBitmap);
+      LoadCachedImage;
     end
     else
     begin
@@ -467,33 +459,24 @@ end;
 
 procedure TForm1.CacheImage(Bitmap: TBitmap);
 begin
-  if FIsPortrait then
-  begin
-    if not Assigned(FPortraitBitmap) then
-      FPortraitBitmap := TBitmap.Create;
-    FPortraitBitmap.Assign(Bitmap);
-  end
-  else
-  begin
-    if not Assigned(FLandscapeBitmap) then
-      FLandscapeBitmap := TBitmap.Create;
-    FLandscapeBitmap.Assign(Bitmap);
-  end;
+  if not Assigned(FCachedBitmap) then
+    FCachedBitmap := TBitmap.Create;
+  FCachedBitmap.Assign(Bitmap);
 end;
 
-procedure TForm1.LoadCachedImage(Bitmap: TBitmap);
+procedure TForm1.LoadCachedImage;
 var
   Scale: Double;
   NewWidth, NewHeight: Integer;
 begin
   // Calculate scaling to fit within Image1 while preserving aspect ratio
-  Scale := Min(Image1.Width / Bitmap.Width, Image1.Height / Bitmap.Height);
-  NewWidth := Round(Bitmap.Width * Scale);
-  NewHeight := Round(Bitmap.Height * Scale);
+  Scale := Min(Image1.Width / FCachedBitmap.Width, Image1.Height / FCachedBitmap.Height);
+  NewWidth := Round(FCachedBitmap.Width * Scale);
+  NewHeight := Round(FCachedBitmap.Height * Scale);
 
   // Resize Image1 to fit the scaled image
   Image1.Picture.Bitmap.SetSize(NewWidth, NewHeight);
-  Image1.Picture.Bitmap.Canvas.StretchDraw(Rect(0, 0, NewWidth, NewHeight), Bitmap);
+  Image1.Picture.Bitmap.Canvas.StretchDraw(Rect(0, 0, NewWidth, NewHeight), FCachedBitmap);
 
   // Center the image in the middle of Image1
   Image1.Left := 0; //(ClientWidth - Image1.Width) div 2;
