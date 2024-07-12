@@ -51,6 +51,10 @@ type
     FFirstComicUrl: string;
     FLastComicUrl: string;
     //FRotationHandler: TX11Rotation;
+    FPortraitBitmap: TBitmap;   // Cached bitmap for portrait mode
+    FLandscapeBitmap: TBitmap;  // Cached bitmap for landscape mode
+    FIsPortrait: Boolean;       // Current orientation state
+
     procedure LoadImageFromStream(Stream: TMemoryStream; const ContentType: string);
     procedure ResizeImage;
     function GetComicsDailyDir: string;
@@ -61,6 +65,8 @@ type
     procedure UpdateLayout;
     procedure UpdateNavigationUrls;
     procedure HandleRotation(Sender: TObject; IsPortrait: Boolean);
+    procedure CacheImage(Bitmap: TBitmap);
+    procedure LoadCachedImage(Bitmap: TBitmap);
   public
   end;
 
@@ -94,7 +100,7 @@ begin
   ComboBox1.Items.Add('wizardofid');
 
   ComboBox1.ItemIndex := 0; // Select the first item by default
-  ComboBox1.ReadOnly:=True;
+  ComboBox1.ReadOnly := True;
 
   Memo1.Enabled := False;
   Memo1.Visible := False;
@@ -111,7 +117,11 @@ begin
   // Ensure FormShow event is connected
   Self.OnShow := @FormShow;
   Self.OnClose := @FormClose;
-  FPrevClientWidth := 0; FPrevClientHeight := 0;
+  FPrevClientWidth := 0;
+  FPrevClientHeight := 0;
+
+  FPortraitBitmap := nil;
+  FLandscapeBitmap := nil;
 end;
 
 procedure TForm1.FormShow(Sender: TObject);
@@ -135,6 +145,9 @@ begin
   //  FreeAndNil(FRotationHandler);
   //  WriteLn('FormClose: Stopped rotation handler');
   //end;
+
+  FreeAndNil(FPortraitBitmap);
+  FreeAndNil(FLandscapeBitmap);
 end;
 
 procedure TForm1.HandleRotation(Sender: TObject; IsPortrait: Boolean);
@@ -144,7 +157,7 @@ begin
   else
     WriteLn('HandleRotation: Landscape mode detected');
 
-  // Adjust the UI layout here based on the rotation
+  FIsPortrait := IsPortrait;
   UpdateLayout;
 end;
 
@@ -158,6 +171,10 @@ begin
   FNextComicUrl := '';
   FFirstComicUrl := '';
   FLastComicUrl := '';
+
+  // Clear cached images as the comic selection has changed
+  FreeAndNil(FPortraitBitmap);
+  FreeAndNil(FLandscapeBitmap);
 end;
 
 procedure TForm1.ShowComicButtonClick(Sender: TObject);
@@ -192,21 +209,23 @@ end;
 
 procedure TForm1.FormActivate(Sender: TObject);
 var
- widget: PGtkWidget;
- atom: TGdkAtom;
- value: cardinal;
+  widget: PGtkWidget;
+  atom: TGdkAtom;
+  value: cardinal;
 begin
- widget := PGtkWidget(Handle);
- if (widget <> nil) and (widget^.window <> nil) and (not FWinPropertySet) then begin
-   FWinPropertySet := True;
-   atom := gdk_atom_intern('_HILDON_PORTRAIT_MODE_SUPPORT', True);
-   value := 1;
-   if atom <> 0 then begin
-     gdk_property_change( widget^.window, atom,
-                         gdk_x11_xatom_to_atom(XA_CARDINAL), 32,
-                         GDK_PROP_MODE_REPLACE, @value, 1);
-   end;
- end;
+  widget := PGtkWidget(Handle);
+  if (widget <> nil) and (widget^.window <> nil) and (not FWinPropertySet) then
+  begin
+    FWinPropertySet := True;
+    atom := gdk_atom_intern('_HILDON_PORTRAIT_MODE_SUPPORT', True);
+    value := 1;
+    if atom <> 0 then
+    begin
+      gdk_property_change(widget^.window, atom,
+        gdk_x11_xatom_to_atom(XA_CARDINAL), 32,
+        GDK_PROP_MODE_REPLACE, @value, 1);
+    end;
+  end;
 end;
 
 procedure TForm1.lastButtonClick(Sender: TObject);
@@ -239,13 +258,14 @@ end;
 
 procedure TForm1.FormResize(Sender: TObject);
 begin
-  writeln ('form resize');
+  WriteLn('form resize');
   UpdateLayout; // Adjust the layout when the form is resized
   if (FPrevClientWidth = 0) or (FPrevClientWidth <> ClientWidth) then
   begin
     ResizeImage; // Resize the image when the form is resized
   end;
-  FPrevClientWidth := ClientWidth; FPrevClientHeight := ClientHeight;
+  FPrevClientWidth := ClientWidth;
+  FPrevClientHeight := ClientHeight;
   //Refresh;
 end;
 
@@ -386,7 +406,7 @@ begin
       try
         Bitmap.SetSize(Img.Width, Img.Height);
         Bitmap.PixelFormat := pf24bit;
-        writeln ('starting bitmap calculation loop');
+        WriteLn('starting bitmap calculation loop');
         for y := 0 to Img.Height - 1 do
         begin
           for x := 0 to Img.Width - 1 do
@@ -395,7 +415,11 @@ begin
             Bitmap.Canvas.Pixels[x, y] := RGBToColor(Color2.red shr 8, Color2.green shr 8, Color2.blue shr 8);
           end;
         end;
-        writeln ('bitmap calculation loop ended');
+        WriteLn('bitmap calculation loop ended');
+
+        // Cache the bitmap
+        CacheImage(Bitmap);
+
         // Calculate scaling to fit within Image1 while preserving aspect ratio
         Scale := Min(Image1.Width / Bitmap.Width, Image1.Height / Bitmap.Height);
         NewWidth := Round(Bitmap.Width * Scale);
@@ -423,9 +447,57 @@ procedure TForm1.ResizeImage;
 begin
   if Assigned(FComicStream) and (FComicStream.Size > 0) then
   begin
-    FComicStream.Position := 0;
-    LoadImageFromStream(FComicStream, FContentType);
+    // Check if a cached image exists for the current orientation
+    if FIsPortrait and Assigned(FPortraitBitmap) then
+    begin
+      LoadCachedImage(FPortraitBitmap);
+    end
+    else if not FIsPortrait and Assigned(FLandscapeBitmap) then
+    begin
+      LoadCachedImage(FLandscapeBitmap);
+    end
+    else
+    begin
+      // If no cached image is available, load from the stream
+      FComicStream.Position := 0;
+      LoadImageFromStream(FComicStream, FContentType);
+    end;
   end;
+end;
+
+procedure TForm1.CacheImage(Bitmap: TBitmap);
+begin
+  if FIsPortrait then
+  begin
+    if not Assigned(FPortraitBitmap) then
+      FPortraitBitmap := TBitmap.Create;
+    FPortraitBitmap.Assign(Bitmap);
+  end
+  else
+  begin
+    if not Assigned(FLandscapeBitmap) then
+      FLandscapeBitmap := TBitmap.Create;
+    FLandscapeBitmap.Assign(Bitmap);
+  end;
+end;
+
+procedure TForm1.LoadCachedImage(Bitmap: TBitmap);
+var
+  Scale: Double;
+  NewWidth, NewHeight: Integer;
+begin
+  // Calculate scaling to fit within Image1 while preserving aspect ratio
+  Scale := Min(Image1.Width / Bitmap.Width, Image1.Height / Bitmap.Height);
+  NewWidth := Round(Bitmap.Width * Scale);
+  NewHeight := Round(Bitmap.Height * Scale);
+
+  // Resize Image1 to fit the scaled image
+  Image1.Picture.Bitmap.SetSize(NewWidth, NewHeight);
+  Image1.Picture.Bitmap.Canvas.StretchDraw(Rect(0, 0, NewWidth, NewHeight), Bitmap);
+
+  // Center the image in the middle of Image1
+  Image1.Left := 0; //(ClientWidth - Image1.Width) div 2;
+  Image1.Top := 0; //(ClientHeight - Image1.Height) div 2;
 end;
 
 function TForm1.GetFileExtension(const ContentType: string): string;
@@ -481,32 +553,32 @@ var
   FormWidth, FormHeight: Integer;
   ComboBoxRight, SaveButtonLeft, SaveButtonRight: Integer;
 begin
-  writeln (' -x-x-x-x update layout -x-x-x-x');
-  writeln ('scr width: ', Screen.Width);
-  writeln ('scr height: ', Screen.Height);
-  writeln ('client width: ', ClientWidth);
-  writeln ('client height: ', ClientHeight);
-  writeln ('form width: ', FormWidth);
-  writeln ('form height: ', FormHeight);
+  WriteLn(' -x-x-x-x update layout -x-x-x-x');
+  WriteLn('scr width: ', Screen.Width);
+  WriteLn('scr height: ', Screen.Height);
+  WriteLn('client width: ', ClientWidth);
+  WriteLn('client height: ', ClientHeight);
+  WriteLn('form width: ', FormWidth);
+  WriteLn('form height: ', FormHeight);
   // Use Screen dimensions for layout calculation
   //If ClientHeight > Screen.Height then begin ClientHeight := Screen.Height - margin - margin end;
   //if ClientWidth > Screen.Width then begin ClientWidth := Screen.Width end;
   FormWidth := ClientWidth;
   FormHeight := ClientHeight;
-  writeln ('-x-x-x-x-x-x-x-x-x-');
-  writeln ('client width: ', ClientWidth);
-  writeln ('client height: ', ClientHeight);
-  writeln ('form width: ', FormWidth);
-  writeln ('form height: ', FormHeight);
-  writeln ('-x-x-x-x-x-x-x-x-x-');
-  writeln;
+  WriteLn('-x-x-x-x-x-x-x-x-x-');
+  WriteLn('client width: ', ClientWidth);
+  WriteLn('client height: ', ClientHeight);
+  WriteLn('form width: ', FormWidth);
+  WriteLn('form height: ', FormHeight);
+  WriteLn('-x-x-x-x-x-x-x-x-x-');
+  WriteLn;
   // Resize and position Image1
   Image1.SetBounds(0, 0, FormWidth, Round(FormHeight * comic_section));
 
   // Position ShowComicButton
   ShowComicButton.Left := FormWidth - lastButton.Width - ShowComicButton.Width - Margin - Margin;
   ShowComicButton.Top := FormHeight - ShowComicButton.Height - SaveComicButton.Height - PrevButton.Height - Margin * 3;
-  writeln('show button ', ShowComicButton.Left, ' ', ShowComicButton.Top);
+  WriteLn('show button ', ShowComicButton.Left, ' ', ShowComicButton.Top);
   // Position PrevButton and NextButton
   PrevButton.Left := ShowComicButton.Left;
   PrevButton.Top := ShowComicButton.Top + ShowComicButton.Height + Margin;
@@ -539,7 +611,7 @@ begin
     ComboBox1.Top := ShowComicButton.Top - ComboBox1.Height - Margin;
     ComboBox1.Left := ShowComicButton.Left;
   end;
-  writeln(' exiting update layout');
+  WriteLn(' exiting update layout');
 end;
 
 procedure TForm1.UpdateNavigationUrls;
@@ -554,5 +626,4 @@ begin
 end;
 
 end.
-
 
