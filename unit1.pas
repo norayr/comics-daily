@@ -7,7 +7,7 @@ interface
 uses
   Classes, SysUtils, Forms, Controls, Graphics, Dialogs, StdCtrls, ExtCtrls,
   FPImage, FPReadJPEG, FPReadPNG, FPReadGIF, FPWriteBMP, LazFileUtils,
-  IntfGraphics, Math, x11rotation, GoComicsAPI, x, Gtk2, Gdk2, Gdk2x, xatom;
+  IntfGraphics, Math, {x11rotation,} GoComicsAPI, x, Gtk2, Gdk2, Gdk2x, xatom;
 
 const
   comic_section = 0.8;
@@ -38,6 +38,7 @@ type
     procedure PrevButtonClick(Sender: TObject);
     procedure NextButtonClick(Sender: TObject);
   private
+    FPrevClientWidth, FPrevClientHeight: Integer;
     FWinPropertySet: boolean; //for hildon
     FComicStream: TMemoryStream;
     FFileName: string;
@@ -49,7 +50,7 @@ type
     FNextComicUrl: string;
     FFirstComicUrl: string;
     FLastComicUrl: string;
-    FRotationHandler: TX11Rotation;
+    //FRotationHandler: TX11Rotation;
     procedure LoadImageFromStream(Stream: TMemoryStream; const ContentType: string);
     procedure ResizeImage;
     function GetComicsDailyDir: string;
@@ -93,6 +94,7 @@ begin
   ComboBox1.Items.Add('wizardofid');
 
   ComboBox1.ItemIndex := 0; // Select the first item by default
+  ComboBox1.ReadOnly:=True;
 
   Memo1.Enabled := False;
   Memo1.Visible := False;
@@ -109,29 +111,30 @@ begin
   // Ensure FormShow event is connected
   Self.OnShow := @FormShow;
   Self.OnClose := @FormClose;
+  FPrevClientWidth := 0; FPrevClientHeight := 0;
 end;
 
 procedure TForm1.FormShow(Sender: TObject);
 begin
   // Create and start the rotation handler
-  if not Assigned(FRotationHandler) then
-  begin
-    FRotationHandler := TX11Rotation.Create(TWindow(Handle));
-    FRotationHandler.OnRotation := @HandleRotation;
-    FRotationHandler.Start;
-    WriteLn('FormShow: Started rotation handler');
-  end;
+  //if not Assigned(FRotationHandler) then
+  //begin
+  //  FRotationHandler := TX11Rotation.Create(TWindow(Handle));
+  //  FRotationHandler.OnRotation := @HandleRotation;
+  //  FRotationHandler.Start;
+  //  WriteLn('FormShow: Started rotation handler');
+  //end;
 end;
 
 procedure TForm1.FormClose(Sender: TObject; var CloseAction: TCloseAction);
 begin
   // Stop the rotation handler
-  if Assigned(FRotationHandler) then
-  begin
-    FRotationHandler.Stop;
-    FreeAndNil(FRotationHandler);
-    WriteLn('FormClose: Stopped rotation handler');
-  end;
+  //if Assigned(FRotationHandler) then
+  //begin
+  //  FRotationHandler.Stop;
+  //  FreeAndNil(FRotationHandler);
+  //  WriteLn('FormClose: Stopped rotation handler');
+  //end;
 end;
 
 procedure TForm1.HandleRotation(Sender: TObject; IsPortrait: Boolean);
@@ -236,8 +239,14 @@ end;
 
 procedure TForm1.FormResize(Sender: TObject);
 begin
+  writeln ('form resize');
   UpdateLayout; // Adjust the layout when the form is resized
-  ResizeImage; // Resize the image when the form is resized
+  if (FPrevClientWidth = 0) or (FPrevClientWidth <> ClientWidth) then
+  begin
+    ResizeImage; // Resize the image when the form is resized
+  end;
+  FPrevClientWidth := ClientWidth; FPrevClientHeight := ClientHeight;
+  //Refresh;
 end;
 
 procedure TForm1.LoadLatestComic(const Comic: string);
@@ -377,7 +386,7 @@ begin
       try
         Bitmap.SetSize(Img.Width, Img.Height);
         Bitmap.PixelFormat := pf24bit;
-
+        writeln ('starting bitmap calculation loop');
         for y := 0 to Img.Height - 1 do
         begin
           for x := 0 to Img.Width - 1 do
@@ -386,7 +395,7 @@ begin
             Bitmap.Canvas.Pixels[x, y] := RGBToColor(Color2.red shr 8, Color2.green shr 8, Color2.blue shr 8);
           end;
         end;
-
+        writeln ('bitmap calculation loop ended');
         // Calculate scaling to fit within Image1 while preserving aspect ratio
         Scale := Min(Image1.Width / Bitmap.Width, Image1.Height / Bitmap.Height);
         NewWidth := Round(Bitmap.Width * Scale);
@@ -472,20 +481,32 @@ var
   FormWidth, FormHeight: Integer;
   ComboBoxRight, SaveButtonLeft, SaveButtonRight: Integer;
 begin
+  writeln (' -x-x-x-x update layout -x-x-x-x');
+  writeln ('scr width: ', Screen.Width);
+  writeln ('scr height: ', Screen.Height);
+  writeln ('client width: ', ClientWidth);
+  writeln ('client height: ', ClientHeight);
+  writeln ('form width: ', FormWidth);
+  writeln ('form height: ', FormHeight);
   // Use Screen dimensions for layout calculation
-  If ClientHeight > Screen.Height then begin ClientHeight := Screen.Height - margin - margin end;
-  if ClientWidth > Screen.Width then begin ClientWidth := Screen.Width end;
+  //If ClientHeight > Screen.Height then begin ClientHeight := Screen.Height - margin - margin end;
+  //if ClientWidth > Screen.Width then begin ClientWidth := Screen.Width end;
   FormWidth := ClientWidth;
   FormHeight := ClientHeight;
-
-
+  writeln ('-x-x-x-x-x-x-x-x-x-');
+  writeln ('client width: ', ClientWidth);
+  writeln ('client height: ', ClientHeight);
+  writeln ('form width: ', FormWidth);
+  writeln ('form height: ', FormHeight);
+  writeln ('-x-x-x-x-x-x-x-x-x-');
+  writeln;
   // Resize and position Image1
   Image1.SetBounds(0, 0, FormWidth, Round(FormHeight * comic_section));
 
   // Position ShowComicButton
   ShowComicButton.Left := FormWidth - lastButton.Width - ShowComicButton.Width - Margin - Margin;
   ShowComicButton.Top := FormHeight - ShowComicButton.Height - SaveComicButton.Height - PrevButton.Height - Margin * 3;
-
+  writeln('show button ', ShowComicButton.Left, ' ', ShowComicButton.Top);
   // Position PrevButton and NextButton
   PrevButton.Left := ShowComicButton.Left;
   PrevButton.Top := ShowComicButton.Top + ShowComicButton.Height + Margin;
@@ -503,7 +524,8 @@ begin
 
   // Position ComboBox1
   ComboBox1.Left := Margin;
-  ComboBox1.Top := SaveComicButton.Top;
+  //ComboBox1.Top := SaveComicButton.Top;
+  ComboBox1.Top := firstButton.Top;
 
   // Calculate right boundaries for overlap detection
   ComboBoxRight := ComboBox1.Left + ComboBox1.Width;
@@ -511,10 +533,13 @@ begin
   SaveButtonRight := SaveComicButton.Left + SaveComicButton.Width;
 
   // Detect horizontal overlap and adjust ComboBox1 position if necessary
-  if (ComboBoxRight > SaveButtonLeft) and (ComboBox1.Left < SaveButtonRight) then
+  //if (ComboBoxRight > SaveButtonLeft) and (ComboBox1.Left < SaveButtonRight) then
+  if FormWidth < FormHeight then
   begin
     ComboBox1.Top := ShowComicButton.Top - ComboBox1.Height - Margin;
+    ComboBox1.Left := ShowComicButton.Left;
   end;
+  writeln(' exiting update layout');
 end;
 
 procedure TForm1.UpdateNavigationUrls;

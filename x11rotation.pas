@@ -74,7 +74,7 @@ begin
   FWindow := AWindow;
   FScreen := DefaultScreen(FDisplay);
   FRootWindow := RootWindow(FDisplay, FScreen);
-  FRotationAtom := XInternAtom(FDisplay, '_HILDON_PORTRAIT_MODE_SUPPORT', False);
+  //FRotationAtom := XInternAtom(FDisplay, '_HILDON_PORTRAIT_MODE_SUPPORT', False);
   WriteLn('Initialized TX11Rotation');
 end;
 
@@ -91,7 +91,7 @@ begin
   IsPortrait := Event^.rotation in [RR_Rotate_90, RR_Rotate_270];
   if Assigned(FOnRotation) then
     FOnRotation(Self, IsPortrait);
-  SetRotationAtom(IsPortrait);
+  //SetRotationAtom(IsPortrait);
   WriteLn('Rotation detected: ', IsPortrait);
 end;
 
@@ -103,7 +103,7 @@ begin
     Value := 1
   else
     Value := 0;
-  XChangeProperty(FDisplay, FRootWindow, FRotationAtom, XA_CARDINAL, 32, PropModeReplace, @Value, 1);
+  //XChangeProperty(FDisplay, FRootWindow, FRotationAtom, XA_CARDINAL, 32, PropModeReplace, @Value, 1);
   WriteLn('Set rotation atom: ', Value);
 end;
 
@@ -152,9 +152,11 @@ begin
   begin
     if XPending(FOwner.FDisplay) > 0 then
     begin
+      writeln ('aaaaaaa');
       XNextEvent(FOwner.FDisplay, @Event);
       if Event._type = RRScreenChangeNotify then
       begin
+        writeln ('bbbbbbb');
         XRRNotifyEvent := PXRRScreenChangeNotifyEvent(@Event);
         FOwner.HandleScreenChangeEvent(XRRNotifyEvent);
       end;
