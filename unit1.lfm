@@ -7,6 +7,7 @@ object Form1: TForm1
   ClientHeight = 869
   ClientWidth = 1017
   LCLVersion = '3.99.0.0'
+  OnActivate = FormActivate
   OnClose = FormClose
   OnCreate = FormCreate
   OnResize = FormResize

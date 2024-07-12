@@ -7,7 +7,7 @@ interface
 uses
   Classes, SysUtils, Forms, Controls, Graphics, Dialogs, StdCtrls, ExtCtrls,
   FPImage, FPReadJPEG, FPReadPNG, FPReadGIF, FPWriteBMP, LazFileUtils,
-  IntfGraphics, Math, x11rotation, GoComicsAPI, x;
+  IntfGraphics, Math, x11rotation, GoComicsAPI, x, Gtk2, Gdk2, Gdk2x, xatom;
 
 const
   comic_section = 0.8;
@@ -27,6 +27,7 @@ type
     Image1: TImage;
     procedure ComboBox1Change(Sender: TObject);
     procedure firstButtonClick(Sender: TObject);
+    procedure FormActivate(Sender: TObject);
     procedure lastButtonClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure FormResize(Sender: TObject);
@@ -37,6 +38,7 @@ type
     procedure PrevButtonClick(Sender: TObject);
     procedure NextButtonClick(Sender: TObject);
   private
+    FWinPropertySet: boolean; //for hildon
     FComicStream: TMemoryStream;
     FFileName: string;
     FContentType: string;
@@ -183,6 +185,25 @@ begin
     UpdateNavigationUrls;
     UpdateButtonStates;
   end;
+end;
+
+procedure TForm1.FormActivate(Sender: TObject);
+var
+ widget: PGtkWidget;
+ atom: TGdkAtom;
+ value: cardinal;
+begin
+ widget := PGtkWidget(Handle);
+ if (widget <> nil) and (widget^.window <> nil) and (not FWinPropertySet) then begin
+   FWinPropertySet := True;
+   atom := gdk_atom_intern('_HILDON_PORTRAIT_MODE_SUPPORT', True);
+   value := 1;
+   if atom <> 0 then begin
+     gdk_property_change( widget^.window, atom,
+                         gdk_x11_xatom_to_atom(XA_CARDINAL), 32,
+                         GDK_PROP_MODE_REPLACE, @value, 1);
+   end;
+ end;
 end;
 
 procedure TForm1.lastButtonClick(Sender: TObject);
