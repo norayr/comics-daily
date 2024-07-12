@@ -37,6 +37,7 @@ type
     procedure SaveComicButtonClick(Sender: TObject);
     procedure PrevButtonClick(Sender: TObject);
     procedure NextButtonClick(Sender: TObject);
+    procedure Image1MouseWheel(Sender: TObject; Shift: TShiftState; WheelDelta: Integer; MousePos: TPoint; var Handled: Boolean);
   private
     FPrevClientWidth, FPrevClientHeight: Integer;
     FWinPropertySet: boolean; //for hildon
@@ -54,6 +55,12 @@ type
     FCachedBitmap: TBitmap;   // Cached bitmap
     FIsPortrait: Boolean;       // Current orientation state
 
+    FScaleFactor: Double;       // Zoom factor
+    FOffsetX, FOffsetY: Integer; // Pan offsets
+    // Variables to keep track of pan state
+    FLastMouseX, FLastMouseY: Integer;
+    FIsPanning: Boolean;
+
     procedure LoadImageFromStream(Stream: TMemoryStream; const ContentType: string);
     procedure ResizeImage;
     function GetComicsDailyDir: string;
@@ -66,6 +73,11 @@ type
     procedure HandleRotation(Sender: TObject; IsPortrait: Boolean);
     procedure CacheImage(Bitmap: TBitmap);
     procedure LoadCachedImage;
+
+    // Methods for zooming and panning
+    procedure StartPan(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
+    procedure PerformPan(Sender: TObject; Shift: TShiftState; X, Y: Integer);
+    procedure EndPan(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
   public
   end;
 
@@ -120,6 +132,16 @@ begin
   FPrevClientHeight := 0;
 
   FCachedBitmap := nil;
+
+  FScaleFactor := 1.0;
+  FOffsetX := 0;
+  FOffsetY := 0;
+
+  // Set up mouse event handlers for zooming and panning
+  Image1.OnMouseDown := @StartPan;
+  Image1.OnMouseMove := @PerformPan;
+  Image1.OnMouseUp := @EndPan;
+  Image1.OnMouseWheel := @Image1MouseWheel;
 end;
 
 procedure TForm1.FormShow(Sender: TObject);
@@ -440,13 +462,52 @@ begin
 end;
 
 procedure TForm1.ResizeImage;
+var
+  NewWidth, NewHeight: Integer;
+  SrcRect, DestRect: TRect;
 begin
   if Assigned(FComicStream) and (FComicStream.Size > 0) then
   begin
     // Check if a cached image exists
     if Assigned(FCachedBitmap) then
     begin
-      LoadCachedImage;
+      // Calculate new dimensions based on the scale factor
+      NewWidth := Round(FCachedBitmap.Width * FScaleFactor);
+      NewHeight := Round(FCachedBitmap.Height * FScaleFactor);
+
+      // Create source and destination rectangles for stretching/cropping
+      SrcRect := Rect(0, 0, FCachedBitmap.Width, FCachedBitmap.Height);
+
+      // Ensure the new dimensions fit within the Image1 boundaries
+      DestRect.Left := FOffsetX;
+      DestRect.Top := FOffsetY;
+      DestRect.Right := DestRect.Left + NewWidth;
+      DestRect.Bottom := DestRect.Top + NewHeight;
+
+      // Clear the image before drawing
+      Image1.Picture.Bitmap.SetSize(Image1.Width, Image1.Height);
+      Image1.Picture.Bitmap.Canvas.Brush.Color := clWhite;
+      Image1.Picture.Bitmap.Canvas.FillRect(0, 0, Image1.Width, Image1.Height);
+
+      // Draw the cached bitmap onto the Image1 canvas
+      Image1.Picture.Bitmap.Canvas.StretchDraw(DestRect, FCachedBitmap);
+
+      // Ensure the image remains within the boundaries of Image1
+      if DestRect.Left > 0 then
+        FOffsetX := 0
+      else if DestRect.Right < Image1.Width then
+        FOffsetX := Image1.Width - NewWidth;
+
+      if DestRect.Top > 0 then
+        FOffsetY := 0
+      else if DestRect.Bottom < Image1.Height then
+        FOffsetY := Image1.Height - NewHeight;
+
+      // Prevent offsets from going out of bounds
+      if NewWidth <= Image1.Width then
+        FOffsetX := 0;
+      if NewHeight <= Image1.Height then
+        FOffsetY := 0;
     end
     else
     begin
@@ -456,6 +517,8 @@ begin
     end;
   end;
 end;
+
+
 
 procedure TForm1.CacheImage(Bitmap: TBitmap);
 begin
@@ -608,5 +671,68 @@ begin
   //ShowMessage('Prev: ' + FPrevComicUrl + ' Next: ' + FNextComicUrl + ' First: ' + FFirstComicUrl + ' Last: ' + FLastComicUrl);
 end;
 
+// Methods for zooming and panning
+procedure TForm1.Image1MouseWheel(Sender: TObject; Shift: TShiftState; WheelDelta: Integer; MousePos: TPoint; var Handled: Boolean);
+var
+  OldScaleFactor: Double;
+  MouseOffsetX, MouseOffsetY: Integer;
+begin
+  // Save the old scale factor
+  OldScaleFactor := FScaleFactor;
+
+  // Adjust the scale factor based on the mouse wheel direction
+  if WheelDelta > 0 then
+    FScaleFactor := FScaleFactor * 1.1
+  else
+    FScaleFactor := FScaleFactor / 1.1;
+
+  // Clamp the scale factor to reasonable limits
+  if FScaleFactor < 0.5 then
+    FScaleFactor := 0.5;
+  if FScaleFactor > 3.0 then
+    FScaleFactor := 3.0;
+
+  // Calculate the mouse offsets based on the old scale factor
+  MouseOffsetX := MousePos.X - FOffsetX;
+  MouseOffsetY := MousePos.Y - FOffsetY;
+
+  // Adjust the offsets to zoom by the mouse point
+  FOffsetX := Round(MouseOffsetX * (FScaleFactor / OldScaleFactor - 1)) + FOffsetX;
+  FOffsetY := Round(MouseOffsetY * (FScaleFactor / OldScaleFactor - 1)) + FOffsetY;
+
+  // Redraw the image with the new scale factor
+  ResizeImage;
+
+  Handled := True;
+end;
+
+
+procedure TForm1.StartPan(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
+begin
+  // Initialize pan state
+  FIsPanning := True;
+  FLastMouseX := X;
+  FLastMouseY := Y;
+end;
+
+procedure TForm1.PerformPan(Sender: TObject; Shift: TShiftState; X, Y: Integer);
+begin
+  if FIsPanning then
+  begin
+    // Calculate the offset based on the mouse movement
+    FOffsetX := FOffsetX + (X - FLastMouseX);
+    FOffsetY := FOffsetY + (Y - FLastMouseY);
+
+    // Redraw the image with the new offset
+    ResizeImage;
+  end;
+  FLastMouseX := X;
+  FLastMouseY := Y;
+end;
+
+procedure TForm1.EndPan(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
+begin
+  FIsPanning := False;
+end;
 end.
 
