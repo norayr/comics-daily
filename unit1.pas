@@ -16,6 +16,7 @@ type
   { TForm1 }
 
   TForm1 = class(TForm)
+    zoomIn: TButton;
     lastButton: TButton;
     firstButton: TButton;
     ComboBox1: TComboBox;
@@ -25,6 +26,7 @@ type
     SaveComicButton: TButton;
     Memo1: TMemo;
     Image1: TImage;
+    zoomOut: TButton;
     procedure ComboBox1Change(Sender: TObject);
     procedure firstButtonClick(Sender: TObject);
     procedure FormActivate(Sender: TObject);
@@ -38,6 +40,9 @@ type
     procedure PrevButtonClick(Sender: TObject);
     procedure NextButtonClick(Sender: TObject);
     procedure Image1MouseWheel(Sender: TObject; Shift: TShiftState; WheelDelta: Integer; MousePos: TPoint; var Handled: Boolean);
+    procedure zoomInClick(Sender: TObject);
+    procedure zoomOutClick(Sender: TObject);
+    procedure ZoomImage(ZoomFactor: Double);
   private
     FPrevClientWidth, FPrevClientHeight: Integer;
     FWinPropertySet: boolean; //for hildon
@@ -142,6 +147,10 @@ begin
   Image1.OnMouseMove := @PerformPan;
   Image1.OnMouseUp := @EndPan;
   Image1.OnMouseWheel := @Image1MouseWheel;
+
+  zoomIn.OnClick := @zoomInClick;
+  zoomOut.OnClick := @zoomOutClick;
+
 end;
 
 procedure TForm1.FormShow(Sender: TObject);
@@ -518,8 +527,6 @@ begin
   end;
 end;
 
-
-
 procedure TForm1.CacheImage(Bitmap: TBitmap);
 begin
   if not Assigned(FCachedBitmap) then
@@ -649,6 +656,10 @@ begin
   ComboBoxRight := ComboBox1.Left + ComboBox1.Width;
   SaveButtonLeft := SaveComicButton.Left;
   SaveButtonRight := SaveComicButton.Left + SaveComicButton.Width;
+  zoomIn.Left := firstButton.Left;
+  zoomIn.Top  := ShowComicButton.Top;
+  zoomOut.Left := lastButton.Left;
+  zoomOut.Top := ShowComicButton.Top;
 
   // Detect horizontal overlap and adjust ComboBox1 position if necessary
   //if (ComboBoxRight > SaveButtonLeft) and (ComboBox1.Left < SaveButtonRight) then
@@ -704,6 +715,50 @@ begin
   ResizeImage;
 
   Handled := True;
+end;
+
+procedure TForm1.ZoomImage(ZoomFactor: Double);
+var
+  OldScaleFactor: Double;
+  MousePos: TPoint;
+  MouseOffsetX, MouseOffsetY: Integer;
+begin
+  // Save the old scale factor
+  OldScaleFactor := FScaleFactor;
+
+  // Adjust the scale factor based on the zoom factor
+  FScaleFactor := FScaleFactor * ZoomFactor;
+
+  // Clamp the scale factor to reasonable limits
+  if FScaleFactor < 0.5 then
+    FScaleFactor := 0.5;
+  if FScaleFactor > 3.0 then
+    FScaleFactor := 3.0;
+
+  // Get the center point of the Image1
+  MousePos := Point(Image1.Width div 2, Image1.Height div 2);
+
+  // Calculate the mouse offsets based on the old scale factor
+  MouseOffsetX := MousePos.X - FOffsetX;
+  MouseOffsetY := MousePos.Y - FOffsetY;
+
+  // Adjust the offsets to zoom by the center point
+  FOffsetX := Round(MouseOffsetX * (FScaleFactor / OldScaleFactor - 1)) + FOffsetX;
+  FOffsetY := Round(MouseOffsetY * (FScaleFactor / OldScaleFactor - 1)) + FOffsetY;
+
+  // Redraw the image with the new scale factor
+  ResizeImage;
+end;
+
+
+procedure TForm1.zoomInClick(Sender: TObject);
+begin
+  ZoomImage(1.1);
+end;
+
+procedure TForm1.zoomOutClick(Sender: TObject);
+begin
+  ZoomImage(0.9);
 end;
 
 
