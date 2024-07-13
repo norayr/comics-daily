@@ -495,7 +495,7 @@ begin
 
       // Clear the image before drawing
       Image1.Picture.Bitmap.SetSize(Image1.Width, Image1.Height);
-      Image1.Picture.Bitmap.Canvas.Brush.Color := clWhite;
+      Image1.Picture.Bitmap.Canvas.Brush.Color := clBlack;
       Image1.Picture.Bitmap.Canvas.FillRect(0, 0, Image1.Width, Image1.Height);
 
       // Draw the cached bitmap onto the Image1 canvas
