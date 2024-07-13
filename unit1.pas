@@ -444,6 +444,9 @@ var
   Color2: TFPColor;
   Scale: Double;
   NewWidth, NewHeight: Integer;
+  InsectPositionX: Integer;
+  MovingInsect: TImage;
+  InsectPath: string;
 begin
   Img := TFPMemoryImage.Create(0, 0);
   try
@@ -460,12 +463,29 @@ begin
       Stream.Position := 0;
       Img.LoadFromStream(Stream, Reader);
 
+      // Create and configure the moving insect image
+      MovingInsect := TImage.Create(Self);
+      MovingInsect.Parent := Self;
+      InsectPath := '/usr/share/pixmaps/comics-daily-insect.png';
+      if not FileExists(InsectPath) then
+        InsectPath := 'comics-daily-insect.png';
+      if FileExists(InsectPath) then
+        MovingInsect.Picture.LoadFromFile(InsectPath)
+      else
+        raise Exception.Create('Insect image not found.');
+
+      MovingInsect.Transparent := True;
+      MovingInsect.SetBounds(0, 0, 48, 48); // Initial position and size
+      MovingInsect.Top:= Round(ClientWidth / 2);
+      MovingInsect.Visible := True; // Show the moving insect
+
       // Convert TFPMemoryImage to TBitmap
       Bitmap := TBitmap.Create;
       try
         Bitmap.SetSize(Img.Width, Img.Height);
         Bitmap.PixelFormat := pf24bit;
         WriteLn('starting bitmap calculation loop');
+
         for y := 0 to Img.Height - 1 do
         begin
           for x := 0 to Img.Width - 1 do
@@ -473,8 +493,20 @@ begin
             Color2 := Img.Colors[x, y];
             Bitmap.Canvas.Pixels[x, y] := RGBToColor(Color2.red shr 8, Color2.green shr 8, Color2.blue shr 8);
           end;
+
+          // Move the insect image
+          InsectPositionX := (y * ClientWidth) div Img.Height;
+          MovingInsect.Left := InsectPositionX;
+
+          // Force a repaint to update the position of the insect image
+          Application.ProcessMessages;
         end;
+
         WriteLn('bitmap calculation loop ended');
+
+        // Hide the moving insect
+        MovingInsect.Visible := False;
+        MovingInsect.Free; // Free the insect image
 
         // Cache the bitmap
         CacheImage(Bitmap);
@@ -506,6 +538,7 @@ begin
     Img.Free;
   end;
 end;
+
 
 procedure TForm1.ResetAndReloadComic;
 begin
