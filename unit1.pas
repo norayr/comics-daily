@@ -9,9 +9,6 @@ uses
   FPImage, FPReadJPEG, FPReadPNG, FPReadGIF, FPWriteBMP, LazFileUtils,
   IntfGraphics, Math, {x11rotation,} GoComicsAPI, x, Gtk2, Gdk2, Gdk2x, xatom;
 
-//const
-//  comic_section = 0.8;
-
 type
   { TForm1 }
 
@@ -632,9 +629,7 @@ begin
   ShowComicButton.Top := FormHeight - ShowComicButton.Height - SaveComicButton.Height - PrevButton.Height - Margin * 3;
   WriteLn('show button ', ShowComicButton.Left, ' ', ShowComicButton.Top);
 
-    // Resize and position Image1
-  FComic_Section := (ShowComicButton.Top - Margin) / ClientHeight;
-  Image1.SetBounds(0, 0, FormWidth, Round(FormHeight * Fcomic_section));
+
 
   // Position PrevButton and NextButton
   PrevButton.Left := ShowComicButton.Left;
@@ -672,6 +667,18 @@ begin
     ComboBox1.Top := ShowComicButton.Top - ComboBox1.Height - Margin;
     ComboBox1.Left := ShowComicButton.Left;
   end;
+      // Resize and position Image1
+
+  if ClientWidth >= ClientHeight then
+  begin
+    FComic_Section := (ShowComicButton.Top - Margin) / ClientHeight
+  end
+ else
+  begin
+    FComic_Section := (ComboBox1.Top - Margin) / ClientHeight
+  end;
+
+   Image1.SetBounds(0, 0, FormWidth, Round(FormHeight * Fcomic_section));
   WriteLn(' exiting update layout');
 end;
 
