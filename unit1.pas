@@ -125,6 +125,8 @@ begin
   nextButton.Enabled := False;
   firstButton.Enabled := False;
   lastButton.Enabled := False;
+  zoomIn.Enabled := False;
+  zoomOut.Enabled := False;
   SaveComicButton.Enabled := False;
   UpdateLayout; // Adjust the layout based on the initial form size
 
@@ -586,6 +588,9 @@ begin
   firstButton.Enabled := PrevButton.Enabled;
   lastButton.Enabled := NextButton.Enabled;
 
+
+  zoomIn.Enabled := PrevButton.Enabled or NextButton.Enabled;
+  zoomOut.Enabled := PrevButton.Enabled or NextButton.Enabled;
   {if NextButton.Enabled = False then
   begin
     lastButton.Enabled := False
