@@ -9,8 +9,8 @@ uses
   FPImage, FPReadJPEG, FPReadPNG, FPReadGIF, FPWriteBMP, LazFileUtils,
   IntfGraphics, Math, {x11rotation,} GoComicsAPI, x, Gtk2, Gdk2, Gdk2x, xatom;
 
-const
-  comic_section = 0.8;
+//const
+//  comic_section = 0.8;
 
 type
   { TForm1 }
@@ -66,6 +66,7 @@ type
     FLastMouseX, FLastMouseY: Integer;
     FIsPanning: Boolean;
 
+    FComic_Section: Real;
     procedure LoadImageFromStream(Stream: TMemoryStream; const ContentType: string);
     procedure ResizeImage;
     function GetComicsDailyDir: string;
@@ -625,13 +626,16 @@ begin
   WriteLn('form height: ', FormHeight);
   WriteLn('-x-x-x-x-x-x-x-x-x-');
   WriteLn;
-  // Resize and position Image1
-  Image1.SetBounds(0, 0, FormWidth, Round(FormHeight * comic_section));
 
   // Position ShowComicButton
   ShowComicButton.Left := FormWidth - lastButton.Width - ShowComicButton.Width - Margin - Margin;
   ShowComicButton.Top := FormHeight - ShowComicButton.Height - SaveComicButton.Height - PrevButton.Height - Margin * 3;
   WriteLn('show button ', ShowComicButton.Left, ' ', ShowComicButton.Top);
+
+    // Resize and position Image1
+  FComic_Section := (ShowComicButton.Top - Margin) / ClientHeight;
+  Image1.SetBounds(0, 0, FormWidth, Round(FormHeight * Fcomic_section));
+
   // Position PrevButton and NextButton
   PrevButton.Left := ShowComicButton.Left;
   PrevButton.Top := ShowComicButton.Top + ShowComicButton.Height + Margin;
