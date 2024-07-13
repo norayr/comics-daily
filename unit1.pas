@@ -9,6 +9,9 @@ uses
   FPImage, FPReadJPEG, FPReadPNG, FPReadGIF, FPWriteBMP, LazFileUtils,
   IntfGraphics, Math, {x11rotation,} GoComicsAPI, x, Gtk2, Gdk2, Gdk2x, xatom;
 
+const
+  margin = 10;
+
 type
   { TForm1 }
 
@@ -43,6 +46,7 @@ type
   private
     FPrevClientWidth, FPrevClientHeight: Integer;
     FWinPropertySet: boolean; //for hildon
+    FIsComicLoaded: Boolean; // to not fetch when loaded
     FComicStream: TMemoryStream;
     FFileName: string;
     FContentType: string;
@@ -189,6 +193,17 @@ begin
   UpdateLayout;
 end;
 
+procedure TForm1.UpdateNavigationUrls;
+begin
+  FPrevComicUrl := FGoComics.PrevComicUrl;
+  FNextComicUrl := FGoComics.NextComicUrl;
+  FFirstComicUrl := FGoComics.FirstComicUrl;
+  FLastComicUrl := FGoComics.LastComicUrl;
+
+  // Show the navigation URLs for debugging purposes
+  //ShowMessage('Prev: ' + FPrevComicUrl + ' Next: ' + FNextComicUrl + ' First: ' + FFirstComicUrl + ' Last: ' + FLastComicUrl);
+end;
+
 procedure TForm1.ComboBox1Change(Sender: TObject);
 begin
   PrevButton.Enabled := False;
@@ -206,21 +221,41 @@ end;
 
 procedure TForm1.ShowComicButtonClick(Sender: TObject);
 begin
-  FCurrentComic := ComboBox1.Text;
+  if FIsComicLoaded and (FCurrentComic = ComboBox1.Text) then
+  begin
+    // Reset and reload the comic from the cached stream
+    if Assigned(FCachedBitmap) then
+    begin
+      // Reset the scale factor and offsets
+      FScaleFactor := 1.0;
+      FOffsetX := 0;
+      FOffsetY := 0;
+      // Reset the layout
+      UpdateLayout;
+      // Load the cached image
+      LoadCachedImage;
+    end;
+  end
+  else
+  begin
+    // Fetch and load the comic from the internet
+    FCurrentComic := ComboBox1.Text;
 
-  FreeAndNil(FGoComics); // Free previous instance if it exists
-  FGoComics := TGoComics.Create(FCurrentComic); // Initialize GoComics object
+    FreeAndNil(FGoComics); // Free previous instance if it exists
+    FGoComics := TGoComics.Create(FCurrentComic); // Initialize GoComics object
 
-  // Restore saved URLs
-  FGoComics.PrevComicUrl := FPrevComicUrl;
-  FGoComics.NextComicUrl := FNextComicUrl;
-  FGoComics.FirstComicUrl := FFirstComicUrl;
-  FGoComics.LastComicUrl := FLastComicUrl;
+    // Restore saved URLs
+    FGoComics.PrevComicUrl := FPrevComicUrl;
+    FGoComics.NextComicUrl := FNextComicUrl;
+    FGoComics.FirstComicUrl := FFirstComicUrl;
+    FGoComics.LastComicUrl := FLastComicUrl;
 
-  FComicStream := TMemoryStream.Create; // Initialize FComicStream
+    FComicStream := TMemoryStream.Create; // Initialize FComicStream
 
-  LoadLatestComic(FCurrentComic);
-  UpdateButtonStates;
+    LoadLatestComic(FCurrentComic);
+    UpdateButtonStates;
+    FIsComicLoaded := True;
+  end;
 end;
 
 procedure TForm1.firstButtonClick(Sender: TObject);
@@ -452,6 +487,11 @@ begin
         NewWidth := Round(Bitmap.Width * Scale);
         NewHeight := Round(Bitmap.Height * Scale);
 
+        // Clear the image before drawing and set the background to black
+        Image1.Picture.Bitmap.SetSize(Image1.Width, Image1.Height);
+        Image1.Picture.Bitmap.Canvas.Brush.Color := clBlack; // Set background to black
+        Image1.Picture.Bitmap.Canvas.FillRect(0, 0, Image1.Width, Image1.Height);
+
         // Resize Image1 to fit the scaled image
         Image1.Picture.Bitmap.SetSize(NewWidth, NewHeight);
         Image1.Picture.Bitmap.Canvas.StretchDraw(Rect(0, 0, NewWidth, NewHeight), Bitmap);
@@ -469,6 +509,7 @@ begin
     Img.Free;
   end;
 end;
+
 
 procedure TForm1.ResizeImage;
 var
@@ -539,19 +580,28 @@ var
   Scale: Double;
   NewWidth, NewHeight: Integer;
 begin
-  // Calculate scaling to fit within Image1 while preserving aspect ratio
-  Scale := Min(Image1.Width / FCachedBitmap.Width, Image1.Height / FCachedBitmap.Height);
-  NewWidth := Round(FCachedBitmap.Width * Scale);
-  NewHeight := Round(FCachedBitmap.Height * Scale);
+  if Assigned(FCachedBitmap) then
+  begin
+    // Calculate scaling to fit within Image1 while preserving aspect ratio
+    Scale := Min(Image1.Width / FCachedBitmap.Width, Image1.Height / FCachedBitmap.Height);
+    NewWidth := Round(FCachedBitmap.Width * Scale);
+    NewHeight := Round(FCachedBitmap.Height * Scale);
 
-  // Resize Image1 to fit the scaled image
-  Image1.Picture.Bitmap.SetSize(NewWidth, NewHeight);
-  Image1.Picture.Bitmap.Canvas.StretchDraw(Rect(0, 0, NewWidth, NewHeight), FCachedBitmap);
+    // Clear the image before drawing and set the background to black
+    Image1.Picture.Bitmap.SetSize(Image1.Width, Image1.Height);
+    Image1.Picture.Bitmap.Canvas.Brush.Color := clBlack;
+    Image1.Picture.Bitmap.Canvas.FillRect(0, 0, Image1.Width, Image1.Height);
 
-  // Center the image in the middle of Image1
-  Image1.Left := 0; //(ClientWidth - Image1.Width) div 2;
-  Image1.Top := 0; //(ClientHeight - Image1.Height) div 2;
+    // Resize Image1 to fit the scaled image
+    Image1.Picture.Bitmap.SetSize(NewWidth, NewHeight);
+    Image1.Picture.Bitmap.Canvas.StretchDraw(Rect(0, 0, NewWidth, NewHeight), FCachedBitmap);
+
+    // Center the image in the middle of Image1
+    Image1.Left := 0; //(ClientWidth - Image1.Width) div 2;
+    Image1.Top := 0; //(ClientHeight - Image1.Height) div 2;
+  end;
 end;
+
 
 function TForm1.GetFileExtension(const ContentType: string): string;
 begin
@@ -603,8 +653,6 @@ begin
 end;
 
 procedure TForm1.UpdateLayout;
-const
-  Margin = 10;
 var
   FormWidth, FormHeight: Integer;
   ComboBoxRight, SaveButtonLeft, SaveButtonRight: Integer;
@@ -617,8 +665,6 @@ begin
   WriteLn('form width: ', FormWidth);
   WriteLn('form height: ', FormHeight);
   // Use Screen dimensions for layout calculation
-  //If ClientHeight > Screen.Height then begin ClientHeight := Screen.Height - margin - margin end;
-  //if ClientWidth > Screen.Width then begin ClientWidth := Screen.Width end;
   FormWidth := ClientWidth;
   FormHeight := ClientHeight;
   WriteLn('-x-x-x-x-x-x-x-x-x-');
@@ -633,8 +679,6 @@ begin
   ShowComicButton.Left := FormWidth - lastButton.Width - ShowComicButton.Width - Margin - Margin;
   ShowComicButton.Top := FormHeight - ShowComicButton.Height - SaveComicButton.Height - PrevButton.Height - Margin * 3;
   WriteLn('show button ', ShowComicButton.Left, ' ', ShowComicButton.Top);
-
-
 
   // Position PrevButton and NextButton
   PrevButton.Left := ShowComicButton.Left;
@@ -653,7 +697,6 @@ begin
 
   // Position ComboBox1
   ComboBox1.Left := Margin;
-  //ComboBox1.Top := SaveComicButton.Top;
   ComboBox1.Top := firstButton.Top;
 
   // Calculate right boundaries for overlap detection
@@ -661,41 +704,24 @@ begin
   SaveButtonLeft := SaveComicButton.Left;
   SaveButtonRight := SaveComicButton.Left + SaveComicButton.Width;
   zoomIn.Left := firstButton.Left;
-  zoomIn.Top  := ShowComicButton.Top;
+  zoomIn.Top := ShowComicButton.Top;
   zoomOut.Left := lastButton.Left;
   zoomOut.Top := ShowComicButton.Top;
 
-  // Detect horizontal overlap and adjust ComboBox1 position if necessary
-  //if (ComboBoxRight > SaveButtonLeft) and (ComboBox1.Left < SaveButtonRight) then
   if FormWidth < FormHeight then
   begin
     ComboBox1.Top := ShowComicButton.Top - ComboBox1.Height - Margin;
     ComboBox1.Left := ShowComicButton.Left;
   end;
-      // Resize and position Image1
 
+  // Resize and position Image1
   if ClientWidth >= ClientHeight then
-  begin
     FComic_Section := (ShowComicButton.Top - Margin) / ClientHeight
-  end
- else
-  begin
-    FComic_Section := (ComboBox1.Top - Margin) / ClientHeight
-  end;
+  else
+    FComic_Section := (ComboBox1.Top - Margin) / ClientHeight;
 
-   Image1.SetBounds(0, 0, FormWidth, Round(FormHeight * Fcomic_section));
+  Image1.SetBounds(0, 0, FormWidth, Round(FormHeight * FComic_Section));
   WriteLn(' exiting update layout');
-end;
-
-procedure TForm1.UpdateNavigationUrls;
-begin
-  FPrevComicUrl := FGoComics.PrevComicUrl;
-  FNextComicUrl := FGoComics.NextComicUrl;
-  FFirstComicUrl := FGoComics.FirstComicUrl;
-  FLastComicUrl := FGoComics.LastComicUrl;
-
-  // Show the navigation URLs for debugging purposes
-  //ShowMessage('Prev: ' + FPrevComicUrl + ' Next: ' + FNextComicUrl + ' First: ' + FFirstComicUrl + ' Last: ' + FLastComicUrl);
 end;
 
 // Methods for zooming and panning
