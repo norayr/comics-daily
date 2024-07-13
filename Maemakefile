@@ -8,17 +8,17 @@ UNAME_M := $(shell uname -m)
 
 # set the ARCH variable based on the detected architecture
 ifeq ($(UNAME_S),Linux)
-    ifeq ($(UNAME_M),x86_64)
-        ARCH := x86_64-linux
-    else ifeq ($(UNAME_M),aarch64)
-        ARCH := aarch64-linux
-    else ifeq ($(UNAME_M),armv7l)
-        ARCH := arm-linux
-    else
-        ARCH := unknown
-    endif
+	ifeq ($(UNAME_M),x86_64)
+		ARCH := x86_64-linux
+	else ifeq ($(UNAME_M),aarch64)
+		ARCH := aarch64-linux
+	else ifeq ($(UNAME_M),armv7l)
+		ARCH := arm-linux
+	else
+		ARCH := unknown
+	endif
 else
-    ARCH := unknown
+	ARCH := unknown
 endif
 
 # print the detected architecture
@@ -40,11 +40,11 @@ FPC = fpc
 
 # Define the compilation parameters
 PARAMS =  $(PROJECT) -FU/tmp -Xs -Xg -MObjFPC -Scgi -O1 -gl -vewnhi -l \
-          -Fu$(LAZARUS)/components/lazutils \
-          -Fu$(LAZARUS)/lcl/units/$(ARCH)/ \
-          -Fu$(LAZARUS)/lcl/units/$(ARCH)/gtk2/ \
-          -Fu$(LAZARUS)/packager/units/$(ARCH)/ \
-          -Fu. -o$(OUTFILE) -dLCL -dLCLgtk2
+	-Fu$(LAZARUS)/components/lazutils \
+	-Fu$(LAZARUS)/lcl/units/$(ARCH)/ \
+	-Fu$(LAZARUS)/lcl/units/$(ARCH)/gtk2/ \
+	-Fu$(LAZARUS)/packager/units/$(ARCH)/ \
+	-Fu. -o$(OUTFILE) -dLCL -dLCLgtk2
 
 # Default target to build the project
 all:
@@ -52,6 +52,7 @@ all:
 install_hildon:
 	mkdir -p $(CURDIR)/debian/comics-daily/usr/share/pixmaps
 	cp comics-daily.png $(CURDIR)/debian/comics-daily/usr/share/pixmaps/
+	cp comics-daily-insect.png $(CURDIR)/debian/comics-daily/usr/share/pixmaps/
 	mkdir -p $(CURDIR)/debian/comics-daily/usr/share/applications/hildon
 	cp comics-daily.desktop $(CURDIR)/debian/comics-daily/usr/share/applications/hildon/
 	mkdir -p $(CURDIR)/debian/comics-daily/usr/bin

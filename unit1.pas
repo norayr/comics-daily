@@ -476,7 +476,7 @@ begin
 
       MovingInsect.Transparent := True;
       MovingInsect.SetBounds(0, 0, 48, 48); // Initial position and size
-      MovingInsect.Top:= Round(ClientWidth / 2);
+      MovingInsect.Top:= Round(ClientHeight * FComic_Section + margin);
       MovingInsect.Visible := True; // Show the moving insect
 
       // Convert TFPMemoryImage to TBitmap
@@ -500,6 +500,8 @@ begin
 
           // Force a repaint to update the position of the insect image
           Application.ProcessMessages;
+          writeln ('insect x=', MovingInsect.Left, ' y=', MovingInsect.Top);
+          //sleep(1000);
         end;
 
         WriteLn('bitmap calculation loop ended');
