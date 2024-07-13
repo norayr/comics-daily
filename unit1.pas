@@ -43,6 +43,7 @@ type
     procedure zoomInClick(Sender: TObject);
     procedure zoomOutClick(Sender: TObject);
     procedure ZoomImage(ZoomFactor: Double);
+    procedure ResetAndReloadComic;
   private
     FPrevClientWidth, FPrevClientHeight: Integer;
     FWinPropertySet: boolean; //for hildon
@@ -190,8 +191,10 @@ begin
     WriteLn('HandleRotation: Landscape mode detected');
 
   FIsPortrait := IsPortrait;
-  UpdateLayout;
+  ResetAndReloadComic; // Recalculate and reload the image size to fit the new layout
 end;
+
+
 
 procedure TForm1.UpdateNavigationUrls;
 begin
@@ -226,14 +229,7 @@ begin
     // Reset and reload the comic from the cached stream
     if Assigned(FCachedBitmap) then
     begin
-      // Reset the scale factor and offsets
-      FScaleFactor := 1.0;
-      FOffsetX := 0;
-      FOffsetY := 0;
-      // Reset the layout
-      UpdateLayout;
-      // Load the cached image
-      LoadCachedImage;
+      ResetAndReloadComic;
     end;
   end
   else
@@ -257,6 +253,7 @@ begin
     FIsComicLoaded := True;
   end;
 end;
+
 
 procedure TForm1.firstButtonClick(Sender: TObject);
 begin
@@ -510,6 +507,19 @@ begin
   end;
 end;
 
+procedure TForm1.ResetAndReloadComic;
+begin
+  // Reset the scale factor and offsets
+  FScaleFactor := 1.0;
+  FOffsetX := 0;
+  FOffsetY := 0;
+
+  // Reset the layout
+  UpdateLayout;
+
+  // Load the cached image
+  LoadCachedImage;
+end;
 
 procedure TForm1.ResizeImage;
 var
@@ -601,6 +611,7 @@ begin
     Image1.Top := 0; //(ClientHeight - Image1.Height) div 2;
   end;
 end;
+
 
 
 function TForm1.GetFileExtension(const ContentType: string): string;
@@ -715,14 +726,11 @@ begin
   end;
 
   // Resize and position Image1
-  if ClientWidth >= ClientHeight then
-    FComic_Section := (ShowComicButton.Top - Margin) / ClientHeight
-  else
-    FComic_Section := (ComboBox1.Top - Margin) / ClientHeight;
-
+  FComic_Section := (ShowComicButton.Top - Margin) / ClientHeight;
   Image1.SetBounds(0, 0, FormWidth, Round(FormHeight * FComic_Section));
   WriteLn(' exiting update layout');
 end;
+
 
 // Methods for zooming and panning
 procedure TForm1.Image1MouseWheel(Sender: TObject; Shift: TShiftState; WheelDelta: Integer; MousePos: TPoint; var Handled: Boolean);
