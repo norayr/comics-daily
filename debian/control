@@ -3,7 +3,7 @@ Section: user/graphics
 Priority: optional
 Maintainer: norayr chilingarian <norayr@arnet.am>
 Uploaders: norayr chilnigarian <norayr@arnet.am>
-Build-Depends:  debhelper (>= 4.0.0), fpc-source, lazarus-ide, lazarus-ide-gtk2, lazarus-src, lcl, lcl-gtk2, lcl-nogui, lcl-units
+Build-Depends:  debhelper (>= 4.0.0), fpc, fpc-3.2.0, fp-utils-3.2.0, fp-units-rtl-3.2.0, fp-units-net-3.2.0, fp-units-multimedia-3.2.0, fp-units-misc-3.2.0, fp-units-math-3.2.0, fp-units-gtk2-3.2.0, fp-units-gfx-3.2.0, fp-units-fv-3.2.0, fp-units-fcl-3.2.0, fp-units-db-3.2.0, fp-units-base, fp-compiler-3.2.0, fp-compiler, fpc-source, fpc-source-3.2.0, lazarus-ide, lazarus-ide-2.0, lazarus-ide-gtk2, lazarus-ide-gtk2-2.0, lazarus-src, lazarus-src-2.0, lcl, lcl-2.0, lcl-gtk2-2.0, lcl-nogui-2.0, lcl-units-2.0, lcl-utils-2.0, lcl-gtk2, lcl-nogui, lcl-units
 Standards-Version: 3.6.1
 
 Package: comics-daily
