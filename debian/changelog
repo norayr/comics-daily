@@ -1,3 +1,7 @@
+comics-daily (0.7.3+leste1)  unstable; urgency=low
+
+  * insect paths corrected.
+
 comics-daily (0.7.2+leste1)  unstable; urgency=low
 
   * insect is animated now.

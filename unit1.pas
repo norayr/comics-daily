@@ -468,9 +468,9 @@ begin
       Img.LoadFromStream(Stream, Reader);
 
       // Initialize the insect image paths
-      InsectPaths[0] := '/usr/share/pixmaps/comics-daily/comics-daily-insect-lf.png';
-      InsectPaths[1] := '/usr/share/pixmaps/comics-daily/comics-daily-insect.png';
-      InsectPaths[2] := '/usr/share/pixmaps/comics-daily/comics-daily-insect-rf.png';
+      InsectPaths[0] := '/usr/share/pixmaps/comics-daily-insect-lf.png';
+      InsectPaths[1] := '/usr/share/pixmaps/comics-daily-insect.png';
+      InsectPaths[2] := '/usr/share/pixmaps/comics-daily-insect-rf.png';
 
       // Load the insect images
       for i := 0 to 2 do
