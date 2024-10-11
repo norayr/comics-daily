@@ -446,7 +446,11 @@ var
   NewWidth, NewHeight: Integer;
   InsectPositionX: Integer;
   MovingInsect: TImage;
-  InsectPath: string;
+  InsectPaths: array[0..2] of string;
+  InsectImages: array[0..2] of TPicture;
+  i, InsectFrameIndex: Integer;
+  FrameChangeInterval: Integer;
+  FrameChangeCounter: Integer;
 begin
   Img := TFPMemoryImage.Create(0, 0);
   try
@@ -457,34 +461,53 @@ begin
     else if Pos('gif', ContentType) > 0 then
       Reader := TFPReaderGIF.Create
     else
-      raise Exception.Create('Unsupported image format: ' + ContentType); // Improved error message
+      raise Exception.Create('Unsupported image format: ' + ContentType);
 
     try
       Stream.Position := 0;
       Img.LoadFromStream(Stream, Reader);
 
+      // Initialize the insect image paths
+      InsectPaths[0] := '/usr/share/pixmaps/comics-daily/comics-daily-insect-lf.png';
+      InsectPaths[1] := '/usr/share/pixmaps/comics-daily/comics-daily-insect.png';
+      InsectPaths[2] := '/usr/share/pixmaps/comics-daily/comics-daily-insect-rf.png';
+
+      // Load the insect images
+      for i := 0 to 2 do
+      begin
+        if not FileExists(InsectPaths[i]) then
+          InsectPaths[i] := ExtractFilePath(ParamStr(0)) + ExtractFileName(InsectPaths[i]); // Look in current directory
+
+        if FileExists(InsectPaths[i]) then
+        begin
+          InsectImages[i] := TPicture.Create;
+          InsectImages[i].LoadFromFile(InsectPaths[i]);
+        end
+        else
+          raise Exception.Create('Insect image not found: ' + InsectPaths[i]);
+      end;
+
       // Create and configure the moving insect image
       MovingInsect := TImage.Create(Self);
       MovingInsect.Parent := Self;
-      InsectPath := '/usr/share/pixmaps/comics-daily-insect.png';
-      if not FileExists(InsectPath) then
-        InsectPath := 'comics-daily-insect.png';
-      if FileExists(InsectPath) then
-        MovingInsect.Picture.LoadFromFile(InsectPath)
-      else
-        raise Exception.Create('Insect image not found.');
-
       MovingInsect.Transparent := True;
       MovingInsect.SetBounds(0, 0, 48, 48); // Initial position and size
-      MovingInsect.Top:= Round(ClientHeight * FComic_Section + margin);
+      MovingInsect.Top := Round(ClientHeight * FComic_Section + margin);
       MovingInsect.Visible := True; // Show the moving insect
+
+      // Set initial frame
+      InsectFrameIndex := 0;
+      MovingInsect.Picture.Assign(InsectImages[InsectFrameIndex]);
+
+      // Initialize frame change variables
+      FrameChangeInterval := 5; // Change frame every 5 pixels
+      FrameChangeCounter := 0;
 
       // Convert TFPMemoryImage to TBitmap
       Bitmap := TBitmap.Create;
       try
         Bitmap.SetSize(Img.Width, Img.Height);
         Bitmap.PixelFormat := pf24bit;
-        WriteLn('starting bitmap calculation loop');
 
         for y := 0 to Img.Height - 1 do
         begin
@@ -498,17 +521,37 @@ begin
           InsectPositionX := (y * ClientWidth) div Img.Height;
           MovingInsect.Left := InsectPositionX;
 
+          // Update the frame counter
+          Inc(FrameChangeCounter);
+          if FrameChangeCounter >= FrameChangeInterval then
+          begin
+            // Move to the next frame in the sequence
+            InsectFrameIndex := (InsectFrameIndex + 1) mod 4; // There are 4 frames in the sequence
+            case InsectFrameIndex of
+              0: MovingInsect.Picture.Assign(InsectImages[0]); // comics-daily-insect-lf.png
+              1: MovingInsect.Picture.Assign(InsectImages[1]); // comics-daily-insect.png
+              2: MovingInsect.Picture.Assign(InsectImages[2]); // comics-daily-insect-rf.png
+              3: MovingInsect.Picture.Assign(InsectImages[1]); // comics-daily-insect.png
+            end;
+            FrameChangeCounter := 0;
+          end;
+
           // Force a repaint to update the position of the insect image
           Application.ProcessMessages;
-          writeln ('insect x=', MovingInsect.Left, ' y=', MovingInsect.Top);
-          //sleep(1000);
-        end;
+          // Optional delay
+          // Sleep(10); // Adjust as needed
 
-        WriteLn('bitmap calculation loop ended');
+          // Uncomment the following line for debugging
+          // writeln('Insect x=', MovingInsect.Left, ' y=', MovingInsect.Top);
+        end;
 
         // Hide the moving insect
         MovingInsect.Visible := False;
         MovingInsect.Free; // Free the insect image
+
+        // Free the insect images
+        for i := 0 to 2 do
+          InsectImages[i].Free;
 
         // Cache the bitmap
         CacheImage(Bitmap);
@@ -528,8 +571,8 @@ begin
         Image1.Picture.Bitmap.Canvas.StretchDraw(Rect(0, 0, NewWidth, NewHeight), Bitmap);
 
         // Center the image in the middle of Image1
-        Image1.Left := 0; //(ClientWidth - Image1.Width) div 2;
-        Image1.Top := 0; //(ClientHeight - Image1.Height) div 2;
+        Image1.Left := 0;
+        Image1.Top := 0;
       finally
         Bitmap.Free;
       end;
