@@ -7,6 +7,7 @@
 ![](screenshots/2.png)
 ![](screenshots/3.png)
 
+animated insect: https://outcast.am/w/82GwSmqavWrcNGDEiMqEdb
 
 ## build
 
