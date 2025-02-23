@@ -98,27 +98,82 @@ implementation
 
 { TForm1 }
 
+procedure DisableControls;
+begin
+
+
+end;
+
+procedure EnableControls;
+begin
+
+end;
+
 procedure TForm1.FormCreate(Sender: TObject);
 begin
+  ComboBox1.Items.Add('academiawaltz');
+  ComboBox1.Items.Add('agnes');
   ComboBox1.Items.Add('andycapp');
+  ComboBox1.Items.Add('arloandjanis');
+  ComboBox1.Items.Add('artbymoga');
+  ComboBox1.Items.Add('aunty-acid');
+  ComboBox1.Items.Add('babyblues');
+  ComboBox1.Items.Add('bignate');
+  ComboBox1.Items.Add('bird-and-moon');
+  ComboBox1.Items.Add('bleeker');
+  ComboBox1.Items.Add('breaking-cat-news');
+  ComboBox1.Items.Add('broomhilda');
   ComboBox1.Items.Add('calvinandhobbes');
   ComboBox1.Items.Add('cats-cafe');
   ComboBox1.Items.Add('citizendog');
+  ComboBox1.Items.Add('culdesac');
+  ComboBox1.Items.Add('crabgrass');
   ComboBox1.Items.Add('dinosaur-comics');
+  ComboBox1.Items.Add('doonesbury');
+  ComboBox1.Items.Add('emmy-lou');
+  ComboBox1.Items.Add('everyday-people-cartoons');
+  ComboBox1.Items.Add('eyebeam');
   ComboBox1.Items.Add('fminus');
+  ComboBox1.Items.Add('fowl-language');
+  ComboBox1.Items.Add('foxtrot');
   ComboBox1.Items.Add('fredbasset');
   ComboBox1.Items.Add('garfield');
+  ComboBox1.Items.Add('grand-avenue');
+  ComboBox1.Items.Add('gray-matters');
+  ComboBox1.Items.Add('herman');
+  ComboBox1.Items.Add('homefree');
   ComboBox1.Items.Add('liz-climo-cartoons');
+  ComboBox1.Items.Add('littledoglost');
+  ComboBox1.Items.Add('lockhorns');
   ComboBox1.Items.Add('lola');
+  ComboBox1.Items.Add('lostsheep');
+  ComboBox1.Items.Add('overboard');
   ComboBox1.Items.Add('peanuts');
   ComboBox1.Items.Add('pearlsbeforeswine');
   ComboBox1.Items.Add('perry-bible-fellowship');
+  ComboBox1.Items.Add('phoebe-and-her-unicorn');
+  ComboBox1.Items.Add('poochcafe');
   ComboBox1.Items.Add('poorly-drawn-lines');
   ComboBox1.Items.Add('sarahs-scribbles');
   ComboBox1.Items.Add('savage-chickens');
+  ComboBox1.Items.Add('stonesoup');
+  ComboBox1.Items.Add('sunshine-state');
+  ComboBox1.Items.Add('super-fun-pak-comix');
+  ComboBox1.Items.Add('ten-cats');
+  ComboBox1.Items.Add('the-adventures-of-business-cat');
+  ComboBox1.Items.Add('the-awkward-yeti');
+  ComboBox1.Items.Add('theothercoast');
+  ComboBox1.Items.Add('thinlines');
+  ComboBox1.Items.Add('understanding-chaos');
+  ComboBox1.Items.Add('wallace-the-brave');
   ComboBox1.Items.Add('wizardofid');
+  ComboBox1.Items.Add('worry-lines');
+  ComboBox1.Items.Add('wrong-hands');
+  ComboBox1.Items.Add('wtduck');
+  ComboBox1.Items.Add('1-and-done');
+  ComboBox1.Items.Add('9to5');
 
-  ComboBox1.ItemIndex := 0; // Select the first item by default
+  ComboBox1.ItemIndex := 22; // Select some item by defauln
   ComboBox1.ReadOnly := True;
 
   Memo1.Enabled := False;
@@ -224,6 +279,7 @@ end;
 
 procedure TForm1.ShowComicButtonClick(Sender: TObject);
 begin
+  Self.Enabled := False;
   if FIsComicLoaded and (FCurrentComic = ComboBox1.Text) then
   begin
     // Reset and reload the comic from the cached stream
@@ -250,6 +306,7 @@ begin
 
     LoadLatestComic(FCurrentComic);
     UpdateButtonStates;
+    Self.Enabled := True;
     FIsComicLoaded := True;
   end;
 end;
@@ -257,6 +314,7 @@ end;
 
 procedure TForm1.firstButtonClick(Sender: TObject);
 begin
+  Self.Enabled := False;
   if FGoComics.FirstComicUrl <> '' then
   begin
     FCurrentDate := FGoComics.FirstComicDate;
@@ -264,6 +322,7 @@ begin
     UpdateNavigationUrls;
     UpdateButtonStates;
   end;
+  Self.Enabled := True;
 end;
 
 procedure TForm1.FormActivate(Sender: TObject);
@@ -289,12 +348,15 @@ end;
 
 procedure TForm1.lastButtonClick(Sender: TObject);
 begin
+  Self.Enabled := False;
   LoadLatestComic(FCurrentComic);
   UpdateButtonStates;
+  Self.Enabled := True;
 end;
 
 procedure TForm1.PrevButtonClick(Sender: TObject);
 begin
+  Self.Enabled := False;
   if FGoComics.PrevComicUrl <> '' then
   begin
     FCurrentDate := FGoComics.PrevComicDate;
@@ -302,10 +364,12 @@ begin
     UpdateNavigationUrls;
     UpdateButtonStates;
   end;
+  Self.Enabled := True;
 end;
 
 procedure TForm1.NextButtonClick(Sender: TObject);
 begin
+  Self.Enabled := False;
   if (FGoComics.NextComicUrl <> '') and (FCurrentDate < Now) then
   begin
     FCurrentDate := FGoComics.NextComicDate;
@@ -313,6 +377,7 @@ begin
     UpdateNavigationUrls;
     UpdateButtonStates;
   end;
+  Self.Enabled := True;
 end;
 
 procedure TForm1.FormResize(Sender: TObject);
@@ -468,9 +533,9 @@ begin
       Img.LoadFromStream(Stream, Reader);
 
       // Initialize the insect image paths
-      InsectPaths[0] := '/usr/share/pixmaps/comics-daily-insect-lf.png';
-      InsectPaths[1] := '/usr/share/pixmaps/comics-daily-insect.png';
-      InsectPaths[2] := '/usr/share/pixmaps/comics-daily-insect-rf.png';
+      InsectPaths[0] := '/usr/share/pixmaps/comics-daily/comics-daily-insect-lf.png';
+      InsectPaths[1] := '/usr/share/pixmaps/comics-daily/comics-daily-insect.png';
+      InsectPaths[2] := '/usr/share/pixmaps/comics-daily/comics-daily-insect-rf.png';
 
       // Load the insect images
       for i := 0 to 2 do
