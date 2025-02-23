@@ -1,4 +1,8 @@
+![](screenshots/screenshot_maemo1.png)
+![](screenshots/screenshot_maemo0.png)
+![](screenshots/screenshot_sxmo.png)
 
+video of animated insect: https://outcast.am/w/82GwSmqavWrcNGDEiMqEdb
 
 # comics reader
 
