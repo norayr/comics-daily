@@ -306,9 +306,9 @@ begin
 
     LoadLatestComic(FCurrentComic);
     UpdateButtonStates;
-    Self.Enabled := True;
     FIsComicLoaded := True;
   end;
+  Self.Enabled := True;
 end;
 
 
