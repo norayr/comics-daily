@@ -111,6 +111,8 @@ end;
 
 procedure TForm1.FormCreate(Sender: TObject);
 begin
+  ComboBox1.ReadOnly:= True;
+
   ComboBox1.Items.Add('academiawaltz');
   ComboBox1.Items.Add('agnes');
   ComboBox1.Items.Add('andycapp');
