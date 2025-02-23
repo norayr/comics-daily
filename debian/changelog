@@ -1,3 +1,7 @@
+comics-daily (0.7.5+leste1)  unstable; urgency=low
+
+  * fixing desktop icon
+
 comics-daily (0.7.4+leste1)  unstable; urgency=low
 
   * more comicses, should solve the accidental double tap issue.

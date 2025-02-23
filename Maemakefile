@@ -51,7 +51,7 @@ all:
 	$(FPC) $(PARAMS)
 install_hildon:
 	mkdir -p $(CURDIR)/debian/comics-daily/usr/share/pixmaps/comics-daily
-	cp comics-daily.png $(CURDIR)/debian/comics-daily/usr/share/pixmaps/comics-daily/
+	cp comics-daily.png $(CURDIR)/debian/comics-daily/usr/share/pixmaps/
 	cp comics-daily-insect.png $(CURDIR)/debian/comics-daily/usr/share/pixmaps/comics-daily/
 	cp comics-daily-insect-rf.png $(CURDIR)/debian/comics-daily/usr/share/pixmaps/comics-daily/
 	cp comics-daily-insect-lf.png $(CURDIR)/debian/comics-daily/usr/share/pixmaps/comics-daily/
