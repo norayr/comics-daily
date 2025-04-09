@@ -189,13 +189,13 @@ end;
 
 procedure TGoComics.ExtractNavigationUrlsFromHtml(const Html: string);
 var
-  NavPos, LinkPos, EndPos: Integer;
-  Url: string;
+  NavPos, LinkPos, DateStart: Integer;
+  Url, DateStr: string;
   Year, Month, Day: Integer;
-  IsDisabled: Boolean;
 begin
   // Previous Button
   FPrevComicUrl := '';
+  FPrevComicDate := 0;
   NavPos := Pos('Controls_controls__button_previous__P4LhX', Html);
   if NavPos > 0 then
   begin
@@ -203,47 +203,49 @@ begin
     if LinkPos > 0 then
     begin
       LinkPos := LinkPos + 6;
-      EndPos := PosEx('"', Html, LinkPos);
-      FPrevComicUrl := BASE_URL + Copy(Html, LinkPos, EndPos - LinkPos);
+      FPrevComicUrl := BASE_URL + Copy(Html, LinkPos, PosEx('"', Html, LinkPos) - LinkPos);
+
+      // Extract date from URL format: /comic-name/YYYY/MM/DD
+      DateStart := PosEx('/', FPrevComicUrl, Length(BASE_URL) + 2);
+      DateStr := Copy(FPrevComicUrl, DateStart, 10);
+      if TryStrToInt(Copy(DateStr, 1, 4), Year) and
+         TryStrToInt(Copy(DateStr, 6, 2), Month) and
+         TryStrToInt(Copy(DateStr, 9, 2), Day) then
+        FPrevComicDate := EncodeDate(Year, Month, Day);
     end;
   end;
 
   // Next Button
   FNextComicUrl := '';
+  FNextComicDate := 0;
   NavPos := Pos('Controls_controls__button_next__6zPfv', Html);
   if NavPos > 0 then
   begin
     // Check if button is disabled
-    IsDisabled := (PosEx('aria-disabled="true"', Html, NavPos) > 0) or
-                  (PosEx('href="', Html, NavPos) = 0);
-
-    if not IsDisabled then
+    if PosEx('aria-disabled="true"', Html, NavPos) = 0 then
     begin
       LinkPos := PosEx('href="', Html, NavPos);
       if LinkPos > 0 then
       begin
         LinkPos := LinkPos + 6;
-        EndPos := PosEx('"', Html, LinkPos);
-        FNextComicUrl := BASE_URL + Copy(Html, LinkPos, EndPos - LinkPos);
+        FNextComicUrl := BASE_URL + Copy(Html, LinkPos, PosEx('"', Html, LinkPos) - LinkPos);
+
+        // Extract date from URL format: /comic-name/YYYY/MM/DD
+        DateStart := PosEx('/', FNextComicUrl, Length(BASE_URL) + 2);
+        DateStr := Copy(FNextComicUrl, DateStart, 10);
+        if TryStrToInt(Copy(DateStr, 1, 4), Year) and
+           TryStrToInt(Copy(DateStr, 6, 2), Month) and
+           TryStrToInt(Copy(DateStr, 9, 2), Day) then
+          FNextComicDate := EncodeDate(Year, Month, Day);
       end;
     end;
   end;
 
-  // Extract dates from URLs
-  if FPrevComicUrl <> '' then
+  // Validate dates
+  if (FNextComicDate < FPrevComicDate) or (FNextComicDate > Now) then
   begin
-    if TryStrToInt(Copy(FPrevComicUrl, Length(FPrevComicUrl) - 9, 4), Year) and
-       TryStrToInt(Copy(FPrevComicUrl, Length(FPrevComicUrl) - 4, 2), Month) and
-       TryStrToInt(Copy(FPrevComicUrl, Length(FPrevComicUrl) - 1, 2), Day) then
-      FPrevComicDate := EncodeDate(Year, Month, Day);
-  end;
-
-  if FNextComicUrl <> '' then
-  begin
-    if TryStrToInt(Copy(FNextComicUrl, Length(FNextComicUrl) - 9, 4), Year) and
-       TryStrToInt(Copy(FNextComicUrl, Length(FNextComicUrl) - 4, 2), Month) and
-       TryStrToInt(Copy(FNextComicUrl, Length(FNextComicUrl) - 1, 2), Day) then
-      FNextComicDate := EncodeDate(Year, Month, Day);
+    FNextComicUrl := '';
+    FNextComicDate := 0;
   end;
 end;
 
