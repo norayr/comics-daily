@@ -427,60 +427,66 @@ end;
 
 procedure TForm1.LoadComic(const Comic: string; const ComicDate: TDateTime);
 var
-  RetryDate: TDateTime;
+  attemptDate: TDateTime;
+  tmpStream: TMemoryStream;
+  i, maxRetries: Integer;
 begin
   if Comic = '' then
   begin
     Memo1.Lines.Add('No comic selected.');
     Exit;
   end;
-  Form1.Caption := Comic + ' ' + DateToStr(ComicDate);
+  // **Set window caption after we know the actual loaded date (no initial mismatch)**
   Memo1.Lines.Add('Fetching comic for ' + Comic + ' on ' + DateToStr(ComicDate) + '...');
   try
-    FreeAndNil(FComicStream); // Free previous instance if it exists
-    FComicStream := TMemoryStream.Create;
-    try
+    FreeAndNil(FComicStream);  // free previous image stream if any
+    attemptDate := ComicDate;
+    maxRetries := 5;  // allow up to 5 fallback days to handle skip days
+    for i := 0 to maxRetries do
+    begin
       try
-        FComicStream := FGoComics.GetImageUrl(ComicDate, FFileName, FContentType);
+        // Try to load the comic for the current attempt date
+        tmpStream := FGoComics.GetImageUrl(attemptDate, FFileName, FContentType);
+        FComicStream := tmpStream;
+        FCurrentDate := attemptDate;
+        Break;  // success: exit the retry loop
       except
         on E: Exception do
         begin
-          Memo1.Lines.Add('Error fetching comic for ' + DateToStr(ComicDate) + ': ' + E.Message);
-          RetryDate := ComicDate - 1; // Try the previous day
-          Memo1.Lines.Add('Retrying with previous day''s comic...');
-          try
-            FComicStream := FGoComics.GetImageUrl(RetryDate, FFileName, FContentType);
-          except
-            on E: Exception do
-            begin
-              Memo1.Lines.Add('Error fetching comic for ' + DateToStr(RetryDate) + ': ' + E.Message);
-              raise;
-            end;
+          Memo1.Lines.Add('Error fetching comic for ' + DateToStr(attemptDate) + ': ' + E.Message);
+          if i = maxRetries then
+            raise  // no more retries, propagate the exception to outer handler
+          else
+          begin
+            // Fallback: try the previous day
+            attemptDate := attemptDate - 1;
+            Memo1.Lines.Add('Retrying with previous day''s comic...');
+            continue;
           end;
-          FCurrentDate := RetryDate;
         end;
       end;
-
-      Memo1.Lines.Add('Content Type: ' + FContentType); // Log content type for debugging
-      if Pos('text/html', FContentType) > 0 then
-        raise Exception.Create('Received HTML instead of image. Please check the image URL.');
-
-      LoadImageFromStream(FComicStream, FContentType);
-      FCurrentDate := ComicDate;
-      Memo1.Lines.Add('Comic displayed successfully for ' + DateToStr(FCurrentDate));
-      SaveComicButton.Enabled := True;
-    finally
-      // Do not free FComicStream here as it is still needed for the image display
     end;
+    // If we reach here, FComicStream contains a valid image from `attemptDate` (stored in FCurrentDate)
+    Memo1.Lines.Add('Content Type: ' + FContentType);
+    if Pos('text/html', FContentType) > 0 then
+      raise Exception.Create('Received HTML instead of image. Please check the image URL.');
+    // Load and display the image from the stream
+    LoadImageFromStream(FComicStream, FContentType);
+    // **Update the form caption to the actual date of the loaded comic**
+    Form1.Caption := Comic + ' ' + DateToStr(FCurrentDate);
+    Memo1.Lines.Add('Comic displayed successfully for ' + DateToStr(FCurrentDate));
+    SaveComicButton.Enabled := True;
   except
     on E: Exception do
     begin
+      // If we get here, no comic was loaded (even after retries)
       Memo1.Lines.Add('Error: ' + E.Message);
+      Exit;  // abort updating navigation if loading failed
     end;
   end;
-
-  // Save the current navigation URLs
+  // **Update navigation URLs based on the successfully loaded page, and refresh button states**
   UpdateNavigationUrls;
+  UpdateButtonStates;
 end;
 
 procedure TForm1.SaveComicButtonClick(Sender: TObject);
