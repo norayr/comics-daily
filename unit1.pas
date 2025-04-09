@@ -794,16 +794,12 @@ procedure TForm1.UpdateButtonStates;
 var
   HasValidNext: Boolean;
 begin
-  // Previous Button
   PrevButton.Enabled := (FGoComics.PrevComicUrl <> '') and (FGoComics.PrevComicDate > 0);
-
-  // Next Button
-  HasValidNext := (FGoComics.NextComicUrl <> '') and (FGoComics.NextComicDate > 0);
-  if HasValidNext then
-    HasValidNext := (FGoComics.NextComicDate <= Now); // Allow only dates not in the future
-
-  NextButton.Enabled := HasValidNext;
-
+  NextButton.Enabled := (FGoComics.NextComicUrl <> '') and (FGoComics.NextComicDate > 0) and (FGoComics.NextComicDate <= Now);
+  firstButton.Enabled := PrevButton.Enabled;
+  lastButton.Enabled  := NextButton.Enabled;
+//  zoomIn.Enabled  := PrevButton.Enabled or NextButton.Enabled;
+//  zoomOut.Enabled := PrevButton.Enabled or NextButton.Enabled;
   //firstButton.Enabled := FCurrentDate <> FGoComics.FirstComicDate;
   firstButton.Enabled := PrevButton.Enabled;
   lastButton.Enabled := NextButton.Enabled;
