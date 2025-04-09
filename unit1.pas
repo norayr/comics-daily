@@ -466,6 +466,7 @@ begin
         raise Exception.Create('Received HTML instead of image. Please check the image URL.');
 
       LoadImageFromStream(FComicStream, FContentType);
+      FCurrentDate := ComicDate;
       Memo1.Lines.Add('Comic displayed successfully for ' + DateToStr(FCurrentDate));
       SaveComicButton.Enabled := True;
     finally
@@ -790,13 +791,18 @@ begin
 end;
 
 procedure TForm1.UpdateButtonStates;
+var
+  HasValidNext: Boolean;
 begin
-  //PrevButton.Enabled := FGoComics.PrevComicUrl <> '';
-  //NextButton.Enabled := FGoComics.NextComicUrl <> '';
-   PrevButton.Enabled := (FGoComics.PrevComicUrl <> '') and (FGoComics.PrevComicDate > 0);
-   NextButton.Enabled := (FGoComics.NextComicUrl <> '') and
-                         (FGoComics.NextComicDate > 0) and
-                         (FGoComics.NextComicDate <= Now);
+  // Previous Button
+  PrevButton.Enabled := (FGoComics.PrevComicUrl <> '') and (FGoComics.PrevComicDate > 0);
+
+  // Next Button
+  HasValidNext := (FGoComics.NextComicUrl <> '') and (FGoComics.NextComicDate > 0);
+  if HasValidNext then
+    HasValidNext := (FGoComics.NextComicDate <= Now); // Allow only dates not in the future
+
+  NextButton.Enabled := HasValidNext;
 
   //firstButton.Enabled := FCurrentDate <> FGoComics.FirstComicDate;
   firstButton.Enabled := PrevButton.Enabled;

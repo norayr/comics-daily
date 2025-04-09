@@ -87,14 +87,19 @@ end;
 
 function TGoComics.ExtractLatestComicUrlFromHtml(const Html: string): string;
 var
-  PrevUrlStart, PrevUrlEnd: Integer;
-  PrevUrl, DatePart: string;
-  Year, Month, Day: Integer;
-  ComicDate: TDateTime;
+
+
+
+
   JsonStart, JsonEnd, JsonDepth: Integer;
   JsonStr: string;
   JsonData: TJSONData;
   DateStr: string;
+  ComicDate: TDateTime;
+   PrevUrlStart, PrevUrlEnd: Integer;
+  PrevUrl, DatePart: string;
+  Year, Month, Day: Integer;
+
 begin
   Result := '';
 
@@ -169,6 +174,46 @@ begin
     end;
   until JsonStart <= 0;
 
+  // Method 2: HTML pattern search with validation
+  PrevUrlStart := 1;
+  repeat
+    PrevUrlStart := PosEx('"datePublished":"', Html, PrevUrlStart);
+    if PrevUrlStart > 0 then
+    begin
+      PrevUrlStart := PrevUrlStart + 16;
+      PrevUrlEnd := PosEx('"', Html, PrevUrlStart);
+
+      // Validate positions before extraction
+      if (PrevUrlEnd > PrevUrlStart) and (PrevUrlEnd <= Length(Html)) then
+      begin
+        DatePart := Copy(Html, PrevUrlStart, PrevUrlEnd - PrevUrlStart);
+
+        // Try ISO format first
+        if TryStrToDate(DatePart, ComicDate, 'yyyy-mm-dd') then
+        begin
+          Result := BASE_URL + '/' + FEndpoint + '/' +
+                    FormatDateTime('yyyy/mm/dd', ComicDate);
+          Exit;
+        end;
+
+        // Try textual format with error handling
+        try
+          ComicDate := ScanDateTime('mmmm d, yyyy', DatePart);
+          Result := BASE_URL + '/' + FEndpoint + '/' +
+                    FormatDateTime('yyyy/mm/dd', ComicDate);
+          Exit;
+        except
+          on E: EConvertError do
+            PrevUrlStart := PrevUrlEnd; // Continue searching
+        end;
+      end
+      else
+      begin
+        PrevUrlStart := 0; // Prevent infinite loop
+      end;
+    end;
+  until PrevUrlStart <= 0;
+
   // Fallback: Check JSON-LD script for explicit date
   PrevUrlStart := Pos('"datePublished":"', Html);
   if PrevUrlStart > 0 then
@@ -178,7 +223,7 @@ begin
     DatePart := Copy(Html, PrevUrlStart, PrevUrlEnd - PrevUrlStart);
 
     // Parse date like "April 3, 2025"
-    ComicDate := ScanDateTime('mmmm d, yyyy', DatePart);
+    ComicDate := DateUtils.ScanDateTime('mmmm d, yyyy', DatePart);
     Result := BASE_URL + '/' + FEndpoint + '/' + FormatDateTime('yyyy/mm/dd', ComicDate);
     Exit;
   end;
@@ -187,68 +232,76 @@ begin
     raise Exception.Create('Latest comic URL not found.');
 end;
 
+
 procedure TGoComics.ExtractNavigationUrlsFromHtml(const Html: string);
 var
   NavPos, LinkPos, DateStart: Integer;
   Url, DateStr: string;
   Year, Month, Day: Integer;
-begin
-  // Previous Button
-  FPrevComicUrl := '';
-  FPrevComicDate := 0;
-  NavPos := Pos('Controls_controls__button_previous__P4LhX', Html);
-  if NavPos > 0 then
+  IsDisabled: Boolean;
   begin
-    LinkPos := PosEx('href="', Html, NavPos);
-    if LinkPos > 0 then
-    begin
-      LinkPos := LinkPos + 6;
-      FPrevComicUrl := BASE_URL + Copy(Html, LinkPos, PosEx('"', Html, LinkPos) - LinkPos);
-
-      // Extract date from URL format: /comic-name/YYYY/MM/DD
-      DateStart := PosEx('/', FPrevComicUrl, Length(BASE_URL) + 2) + 1;
-      DateStr := Copy(FPrevComicUrl, DateStart, 10);
-      Year := 0; Month := 0; Day := 0; // Initialize
-      if TryStrToInt(Copy(DateStr, 1, 4), Year) and
-         TryStrToInt(Copy(DateStr, 6, 2), Month) and
-         TryStrToInt(Copy(DateStr, 9, 2), Day) then
-        FPrevComicDate := EncodeDate(Year, Month, Day);
-    end;
-  end;
-
-  // Next Button
-  FNextComicUrl := '';
-  FNextComicDate := 0;
-  NavPos := Pos('Controls_controls__button_next__6zPfv', Html);
-  if NavPos > 0 then
-  begin
-    if PosEx('aria-disabled="true"', Html, NavPos) = 0 then
+    // Previous Button
+    FPrevComicUrl := '';
+    FPrevComicDate := 0;
+    NavPos := Pos('Controls_controls__button_previous__P4LhX', Html);
+    if NavPos > 0 then
     begin
       LinkPos := PosEx('href="', Html, NavPos);
       if LinkPos > 0 then
       begin
         LinkPos := LinkPos + 6;
-        FNextComicUrl := BASE_URL + Copy(Html, LinkPos, PosEx('"', Html, LinkPos) - LinkPos);
+        FPrevComicUrl := BASE_URL + Copy(Html, LinkPos, PosEx('"', Html, LinkPos) - LinkPos);
 
         // Extract date from URL format: /comic-name/YYYY/MM/DD
-        DateStart := PosEx('/', FNextComicUrl, Length(BASE_URL) + 2) + 1;
-        DateStr := Copy(FNextComicUrl, DateStart, 10);
+        DateStart := PosEx('/', FPrevComicUrl, Length(BASE_URL) + 2) + 1;
+        DateStr := Copy(FPrevComicUrl, DateStart, 10);
         Year := 0; Month := 0; Day := 0; // Initialize
         if TryStrToInt(Copy(DateStr, 1, 4), Year) and
            TryStrToInt(Copy(DateStr, 6, 2), Month) and
            TryStrToInt(Copy(DateStr, 9, 2), Day) then
-          FNextComicDate := EncodeDate(Year, Month, Day);
+          FPrevComicDate := EncodeDate(Year, Month, Day);
       end;
     end;
-  end;
 
-  // Validate dates
-  if (FNextComicDate < FPrevComicDate) or (FNextComicDate > Now) then
-  begin
+
+    // Next Button
+
+
     FNextComicUrl := '';
     FNextComicDate := 0;
-  end;
+    NavPos := Pos('Controls_controls__button_next__6zPfv', Html);
+    if NavPos > 0 then
+    begin
+      if PosEx('aria-disabled="true"', Html, NavPos) = 0 then
+      begin
+        LinkPos := PosEx('href="', Html, NavPos);
+        if LinkPos > 0 then
+        begin
+          LinkPos := LinkPos + 6;
+          FNextComicUrl := BASE_URL + Copy(Html, LinkPos, PosEx('"', Html, LinkPos) - LinkPos);
+
+          // Extract date from URL format: /comic-name/YYYY/MM/DD
+          DateStart := PosEx('/', FNextComicUrl, Length(BASE_URL) + 2) + 1;
+          DateStr := Copy(FNextComicUrl, DateStart, 10);
+          Year := 0; Month := 0; Day := 0; // Initialize
+          if TryStrToInt(Copy(DateStr, 1, 4), Year) and
+             TryStrToInt(Copy(DateStr, 6, 2), Month) and
+             TryStrToInt(Copy(DateStr, 9, 2), Day) then
+            FNextComicDate := EncodeDate(Year, Month, Day);
+        end;
+      end;
+    end;
+
+    // Validate dates
+    if (FNextComicDate <> 0) and
+       ((FNextComicDate < FPrevComicDate) or (FNextComicDate > Now + 1)) then
+    begin
+      // Only reset if date is clearly invalid
+      FNextComicUrl := '';
+      FNextComicDate := 0;
+    end;
 end;
+
 
 function TGoComics.GetStartDate: TDateTime;
 begin
