@@ -189,11 +189,12 @@ end;
 
 procedure TGoComics.ExtractNavigationUrlsFromHtml(const Html: string);
 var
-  NavPos, LinkPos: Integer;
+  NavPos, LinkPos, EndPos: Integer;
   Url: string;
   Year, Month, Day: Integer;
+  IsDisabled: Boolean;
 begin
-  // Previous button
+  // Previous Button
   FPrevComicUrl := '';
   NavPos := Pos('Controls_controls__button_previous__P4LhX', Html);
   if NavPos > 0 then
@@ -202,20 +203,29 @@ begin
     if LinkPos > 0 then
     begin
       LinkPos := LinkPos + 6;
-      FPrevComicUrl := BASE_URL + Copy(Html, LinkPos, PosEx('"', Html, LinkPos) - LinkPos);
+      EndPos := PosEx('"', Html, LinkPos);
+      FPrevComicUrl := BASE_URL + Copy(Html, LinkPos, EndPos - LinkPos);
     end;
   end;
 
-  // Next button
+  // Next Button
   FNextComicUrl := '';
   NavPos := Pos('Controls_controls__button_next__6zPfv', Html);
   if NavPos > 0 then
   begin
-    LinkPos := PosEx('href="', Html, NavPos);
-    if LinkPos > 0 then
+    // Check if button is disabled
+    IsDisabled := (PosEx('aria-disabled="true"', Html, NavPos) > 0) or
+                  (PosEx('href="', Html, NavPos) = 0);
+
+    if not IsDisabled then
     begin
-      LinkPos := LinkPos + 6;
-      FNextComicUrl := BASE_URL + Copy(Html, LinkPos, PosEx('"', Html, LinkPos) - LinkPos);
+      LinkPos := PosEx('href="', Html, NavPos);
+      if LinkPos > 0 then
+      begin
+        LinkPos := LinkPos + 6;
+        EndPos := PosEx('"', Html, LinkPos);
+        FNextComicUrl := BASE_URL + Copy(Html, LinkPos, EndPos - LinkPos);
+      end;
     end;
   end;
 

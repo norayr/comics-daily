@@ -214,6 +214,8 @@ begin
   zoomIn.OnClick := @zoomInClick;
   zoomOut.OnClick := @zoomOutClick;
 
+  firstButton.Visible := False;
+  lastButton.Visible := False;
 end;
 
 procedure TForm1.FormShow(Sender: TObject);
