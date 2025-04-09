@@ -55,7 +55,7 @@ type
   end;
 
 implementation
-
+    uses fpjson, jsonparser, dateutils;
 { TGoComics }
 
 function TGoComics.ExtractImageUrlFromHtml(const Html: string): string;
@@ -64,123 +64,176 @@ var
   ImgTag, SrcUrl: string;
 begin
   Result := '';
-  ImgPos := Pos('<img', Html);
-  while ImgPos > 0 do
+  // Look for the main comic image container
+  ImgPos := Pos('<div class="Comic_comic__container__AHdOD"', Html);
+  if ImgPos > 0 then
   begin
-    ImgTag := Copy(Html, ImgPos, PosEx('>', Html, ImgPos) - ImgPos + 1);
-    SrcPos := Pos('src="', ImgTag);
-    if SrcPos > 0 then
+    // Find the first <img> tag within this container
+    ImgPos := PosEx('<img', Html, ImgPos);
+    if ImgPos > 0 then
     begin
-      SrcPos := SrcPos + Length('src="');
-      SrcUrl := Copy(ImgTag, SrcPos, PosEx('"', ImgTag, SrcPos) - SrcPos);
-      if Pos('assets.amuniversal.com', SrcUrl) > 0 then
+      ImgTag := Copy(Html, ImgPos, PosEx('>', Html, ImgPos) - ImgPos + 1);
+      SrcPos := Pos('src="', ImgTag);
+      if SrcPos > 0 then
       begin
-        Result := SrcUrl;
-        Break;
+        SrcPos := SrcPos + Length('src="');
+        SrcUrl := Copy(ImgTag, SrcPos, PosEx('"', ImgTag, SrcPos) - SrcPos);
+        if Pos('featureassets.gocomics.com', SrcUrl) > 0 then
+          Result := SrcUrl;
       end;
     end;
-    ImgPos := PosEx('<img', Html, ImgPos + Length('<img'));
   end;
 end;
 
 function TGoComics.ExtractLatestComicUrlFromHtml(const Html: string): string;
 var
-  Pos1, Pos2: Integer;
+  PrevUrlStart, PrevUrlEnd: Integer;
+  PrevUrl, DatePart: string;
+  Year, Month, Day: Integer;
+  ComicDate: TDateTime;
+  JsonStart, JsonEnd, JsonDepth: Integer;
+  JsonStr: string;
+  JsonData: TJSONData;
+  DateStr: string;
 begin
-  Pos1 := Pos('<div class="gc-deck gc-deck--cta-0">', Html);
-  if Pos1 > 0 then
-  begin
-    Pos1 := PosEx('<a class="gc-blended-link gc-blended-link--primary"', Html, Pos1);
-    if Pos1 > 0 then
+  Result := '';
+
+  // Method 1: Enhanced JSON parsing with multiple path checks
+  JsonStart := 1;
+  repeat
+    JsonStart := PosEx('<script type="application/ld+json"', Html, JsonStart);
+    if JsonStart > 0 then
     begin
-      Pos1 := PosEx('href="', Html, Pos1) + Length('href="');
-      Pos2 := PosEx('"', Html, Pos1);
-      Result := BASE_URL + Copy(Html, Pos1, Pos2 - Pos1);
+      JsonStart := PosEx('{', Html, JsonStart);
+      JsonEnd := JsonStart;
+      JsonDepth := 1;
+
+      // Accurate JSON boundary detection
+      while (JsonEnd <= Length(Html)) and (JsonDepth > 0) do
+      begin
+        Inc(JsonEnd);
+        case Html[JsonEnd] of
+          '{': Inc(JsonDepth);
+          '}': Dec(JsonDepth);
+        end;
+      end;
+
+      if JsonDepth = 0 then
+      begin
+        JsonStr := Copy(Html, JsonStart, JsonEnd - JsonStart + 1);
+        try
+          JsonData := GetJSON(JsonStr);
+          try
+            if (JsonData.JSONType = jtObject) then
+            begin
+              // Try multiple possible date locations
+              DateStr := TJSONObject(JsonData).Get('datePublished', '');
+
+              // First fallback: mainEntity.datePublished
+              if (DateStr = '') and (JsonData.FindPath('mainEntity') <> nil) then
+                DateStr := TJSONObject(JsonData.FindPath('mainEntity')).Get('datePublished', '');
+
+              // Second fallback: isPartOf.datePublished
+              if (DateStr = '') and (JsonData.FindPath('isPartOf') <> nil) then
+                DateStr := TJSONObject(JsonData.FindPath('isPartOf')).Get('datePublished', '');
+
+              if DateStr <> '' then
+              begin
+                // Handle ISO format (2025-04-02)
+                if TryStrToDate(DateStr, ComicDate, 'yyyy-mm-dd') then
+                begin
+                  Result := BASE_URL + '/' + FEndpoint + '/' +
+                            FormatDateTime('yyyy/mm/dd', ComicDate);
+                  Exit;
+                end;
+
+                // Handle textual format (April 3, 2025)
+                try
+                  ComicDate := ScanDateTime('mmmm d, yyyy', DateStr);
+                  Result := BASE_URL + '/' + FEndpoint + '/' +
+                            FormatDateTime('yyyy/mm/dd', ComicDate);
+                  Exit;
+                except
+                  on E: EConvertError do ; // Continue trying
+                end;
+              end;
+            end;
+          finally
+            JsonData.Free;
+          end;
+        except
+          // Invalid JSON - continue searching
+        end;
+      end;
+      JsonStart := JsonEnd + 1;
     end;
+  until JsonStart <= 0;
+
+  // Fallback: Check JSON-LD script for explicit date
+  PrevUrlStart := Pos('"datePublished":"', Html);
+  if PrevUrlStart > 0 then
+  begin
+    PrevUrlStart := PrevUrlStart + 16;
+    PrevUrlEnd := PosEx('"', Html, PrevUrlStart);
+    DatePart := Copy(Html, PrevUrlStart, PrevUrlEnd - PrevUrlStart);
+
+    // Parse date like "April 3, 2025"
+    ComicDate := ScanDateTime('mmmm d, yyyy', DatePart);
+    Result := BASE_URL + '/' + FEndpoint + '/' + FormatDateTime('yyyy/mm/dd', ComicDate);
+    Exit;
   end;
+
   if Result = '' then
     raise Exception.Create('Latest comic URL not found.');
 end;
 
 procedure TGoComics.ExtractNavigationUrlsFromHtml(const Html: string);
 var
-  NavPos, LinkPos, ClassPos: Integer;
-  Url, ClassStr: string;
-  YearStr, MonthStr, DayStr: string;
+  NavPos, LinkPos: Integer;
+  Url: string;
   Year, Month, Day: Integer;
 begin
-  NavPos := Pos('<nav class="gc-calendar-nav" role="group" aria-label="Date Navigation Controls">', Html);
+  // Previous button
+  FPrevComicUrl := '';
+  NavPos := Pos('Controls_controls__button_previous__P4LhX', Html);
   if NavPos > 0 then
   begin
-    // Reset URLs
-    FFirstComicUrl := '';
-    FPrevComicUrl := '';
-    FNextComicUrl := '';
-    FLastComicUrl := '';
-
-    LinkPos := PosEx('<a role=''button'' href=''', Html, NavPos);
-    while LinkPos > 0 do
+    LinkPos := PosEx('href="', Html, NavPos);
+    if LinkPos > 0 then
     begin
-      LinkPos := LinkPos + Length('<a role=''button'' href=''''');
-      Url := Copy(Html, LinkPos, PosEx('''', Html, LinkPos) - LinkPos);
-
-      ClassPos := PosEx('class=''fa ', Html, LinkPos);
-      if ClassPos > 0 then
-      begin
-        ClassStr := Copy(Html, ClassPos + Length('class='''), PosEx('''', Html, ClassPos + Length('class=''')) - (ClassPos + Length('class=''')));
-
-        if Pos('fa-backward', ClassStr) > 0 then
-          if Url = ' class=' then begin FFirstComicUrl := '' end else begin FFirstComicUrl := BASE_URL + Url end
-        else if Pos('fa-caret-left', ClassStr) > 0 then
-          if Url = ' class=' then begin FPrevComicUrl := '' end else begin FPrevComicUrl := BASE_URL + Url end
-          //FPrevComicUrl := BASE_URL + Url
-        else if Pos('fa-caret-right', ClassStr) > 0 then
-          if Url = ' class=' then begin FNextComicUrl := '' end else begin FNextComicUrl := BASE_URL + Url end
-          //FNextComicUrl := BASE_URL + Url
-        else if Pos('fa-forward', ClassStr) > 0 then
-          if Url = ' class=' then begin FLastComicUrl := '' end else begin FLastComicUrl := BASE_URL + Url; end
-          //FLastComicUrl := BASE_URL + Url;
-      end;
-
-      LinkPos := PosEx('<a role=''button'' href=''', Html, LinkPos);
+      LinkPos := LinkPos + 6;
+      FPrevComicUrl := BASE_URL + Copy(Html, LinkPos, PosEx('"', Html, LinkPos) - LinkPos);
     end;
+  end;
 
-    // Extract dates for URLs
-    if FFirstComicUrl <> '' then
+  // Next button
+  FNextComicUrl := '';
+  NavPos := Pos('Controls_controls__button_next__6zPfv', Html);
+  if NavPos > 0 then
+  begin
+    LinkPos := PosEx('href="', Html, NavPos);
+    if LinkPos > 0 then
     begin
-      YearStr := Copy(FFirstComicUrl, Length(FFirstComicUrl) - 9, 4);
-      MonthStr := Copy(FFirstComicUrl, Length(FFirstComicUrl) - 4, 2);
-      DayStr := Copy(FFirstComicUrl, Length(FFirstComicUrl) - 1, 2);
-      if TryStrToInt(YearStr, Year) and TryStrToInt(MonthStr, Month) and TryStrToInt(DayStr, Day) then
-        FFirstComicDate := EncodeDate(Year, Month, Day);
+      LinkPos := LinkPos + 6;
+      FNextComicUrl := BASE_URL + Copy(Html, LinkPos, PosEx('"', Html, LinkPos) - LinkPos);
     end;
+  end;
 
-    if FPrevComicUrl <> '' then
-    begin
-      YearStr := Copy(FPrevComicUrl, Length(FPrevComicUrl) - 9, 4);
-      MonthStr := Copy(FPrevComicUrl, Length(FPrevComicUrl) - 4, 2);
-      DayStr := Copy(FPrevComicUrl, Length(FPrevComicUrl) - 1, 2);
-      if TryStrToInt(YearStr, Year) and TryStrToInt(MonthStr, Month) and TryStrToInt(DayStr, Day) then
-        FPrevComicDate := EncodeDate(Year, Month, Day);
-    end;
+  // Extract dates from URLs
+  if FPrevComicUrl <> '' then
+  begin
+    if TryStrToInt(Copy(FPrevComicUrl, Length(FPrevComicUrl) - 9, 4), Year) and
+       TryStrToInt(Copy(FPrevComicUrl, Length(FPrevComicUrl) - 4, 2), Month) and
+       TryStrToInt(Copy(FPrevComicUrl, Length(FPrevComicUrl) - 1, 2), Day) then
+      FPrevComicDate := EncodeDate(Year, Month, Day);
+  end;
 
-    if FNextComicUrl <> '' then
-    begin
-      YearStr := Copy(FNextComicUrl, Length(FNextComicUrl) - 9, 4);
-      MonthStr := Copy(FNextComicUrl, Length(FNextComicUrl) - 4, 2);
-      DayStr := Copy(FNextComicUrl, Length(FNextComicUrl) - 1, 2);
-      if TryStrToInt(YearStr, Year) and TryStrToInt(MonthStr, Month) and TryStrToInt(DayStr, Day) then
-        FNextComicDate := EncodeDate(Year, Month, Day);
-    end;
-
-    if FLastComicUrl <> '' then
-    begin
-      YearStr := Copy(FLastComicUrl, Length(FLastComicUrl) - 9, 4);
-      MonthStr := Copy(FLastComicUrl, Length(FLastComicUrl) - 4, 2);
-      DayStr := Copy(FLastComicUrl, Length(FLastComicUrl) - 1, 2);
-      if TryStrToInt(YearStr, Year) and TryStrToInt(MonthStr, Month) and TryStrToInt(DayStr, Day) then
-        FLastComicDate := EncodeDate(Year, Month, Day);
-    end;
+  if FNextComicUrl <> '' then
+  begin
+    if TryStrToInt(Copy(FNextComicUrl, Length(FNextComicUrl) - 9, 4), Year) and
+       TryStrToInt(Copy(FNextComicUrl, Length(FNextComicUrl) - 4, 2), Month) and
+       TryStrToInt(Copy(FNextComicUrl, Length(FNextComicUrl) - 1, 2), Day) then
+      FNextComicDate := EncodeDate(Year, Month, Day);
   end;
 end;
 
