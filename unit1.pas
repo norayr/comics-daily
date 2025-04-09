@@ -791,8 +791,13 @@ end;
 
 procedure TForm1.UpdateButtonStates;
 begin
-  PrevButton.Enabled := FGoComics.PrevComicUrl <> '';
-  NextButton.Enabled := FGoComics.NextComicUrl <> '';
+  //PrevButton.Enabled := FGoComics.PrevComicUrl <> '';
+  //NextButton.Enabled := FGoComics.NextComicUrl <> '';
+   PrevButton.Enabled := (FGoComics.PrevComicUrl <> '') and (FGoComics.PrevComicDate > 0);
+   NextButton.Enabled := (FGoComics.NextComicUrl <> '') and
+                         (FGoComics.NextComicDate > 0) and
+                         (FGoComics.NextComicDate <= Now);
+
   //firstButton.Enabled := FCurrentDate <> FGoComics.FirstComicDate;
   firstButton.Enabled := PrevButton.Enabled;
   lastButton.Enabled := NextButton.Enabled;

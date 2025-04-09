@@ -206,8 +206,9 @@ begin
       FPrevComicUrl := BASE_URL + Copy(Html, LinkPos, PosEx('"', Html, LinkPos) - LinkPos);
 
       // Extract date from URL format: /comic-name/YYYY/MM/DD
-      DateStart := PosEx('/', FPrevComicUrl, Length(BASE_URL) + 2);
+      DateStart := PosEx('/', FPrevComicUrl, Length(BASE_URL) + 2) + 1;
       DateStr := Copy(FPrevComicUrl, DateStart, 10);
+      Year := 0; Month := 0; Day := 0; // Initialize
       if TryStrToInt(Copy(DateStr, 1, 4), Year) and
          TryStrToInt(Copy(DateStr, 6, 2), Month) and
          TryStrToInt(Copy(DateStr, 9, 2), Day) then
@@ -221,7 +222,6 @@ begin
   NavPos := Pos('Controls_controls__button_next__6zPfv', Html);
   if NavPos > 0 then
   begin
-    // Check if button is disabled
     if PosEx('aria-disabled="true"', Html, NavPos) = 0 then
     begin
       LinkPos := PosEx('href="', Html, NavPos);
@@ -231,8 +231,9 @@ begin
         FNextComicUrl := BASE_URL + Copy(Html, LinkPos, PosEx('"', Html, LinkPos) - LinkPos);
 
         // Extract date from URL format: /comic-name/YYYY/MM/DD
-        DateStart := PosEx('/', FNextComicUrl, Length(BASE_URL) + 2);
+        DateStart := PosEx('/', FNextComicUrl, Length(BASE_URL) + 2) + 1;
         DateStr := Copy(FNextComicUrl, DateStart, 10);
+        Year := 0; Month := 0; Day := 0; // Initialize
         if TryStrToInt(Copy(DateStr, 1, 4), Year) and
            TryStrToInt(Copy(DateStr, 6, 2), Month) and
            TryStrToInt(Copy(DateStr, 9, 2), Day) then
