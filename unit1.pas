@@ -366,9 +366,18 @@ begin
     if FGoComics.PrevComicUrl <> '' then
     begin
       FCurrentDate := FGoComics.PrevComicDate;
-      LoadComic(FCurrentComic, FCurrentDate);
-      UpdateNavigationUrls;
-      UpdateButtonStates;
+      try
+        LoadComic(FCurrentComic, FCurrentDate);
+        UpdateNavigationUrls;
+        UpdateButtonStates;
+      except
+        on E: Exception do
+        begin
+          ShowMessage('Error loading previous comic: ' + E.Message);
+          // If we can't load the previous comic, reset to a known good state
+          // You might want to try reverting to the previous date
+        end;
+      end;
     end;
   finally
     Self.Enabled := True;
@@ -376,15 +385,62 @@ begin
 end;
 
 procedure TForm1.NextButtonClick(Sender: TObject);
+var
+   OldDate: TDateTime;
 begin
   Self.Enabled := False;
   try
-    if (FGoComics.NextComicUrl <> '') and (FCurrentDate < Now) then
+    // Additional validation before attempting to navigate
+    if (FGoComics.NextComicUrl = '') then
     begin
+      ShowMessage('You have reached the latest comic.');
+      NextButton.Enabled := False;
+      Exit;
+    end;
+
+    // Validate that the next date isn't in the future
+    if (FGoComics.NextComicDate > Date()) then
+    begin
+      ShowMessage('You have reached the latest comic.');
+      NextButton.Enabled := False;
+      FGoComics.NextComicUrl := ''; // Clear bad URL
+      FGoComics.NextComicDate := 0;
+      Exit;
+    end;
+
+    // Store current state for potential rollback
+    OldDate := FCurrentDate;
+
+    try
+      // Set the new date
       FCurrentDate := FGoComics.NextComicDate;
+
+      // Try to load the comic
       LoadComic(FCurrentComic, FCurrentDate);
       UpdateNavigationUrls;
       UpdateButtonStates;
+    except
+      on E: Exception do
+      begin
+        ShowMessage('Error loading next comic: ' + E.Message);
+
+        // Revert to previous date
+        FCurrentDate := OldDate;
+
+        // Disable the Next button to prevent further attempts
+        NextButton.Enabled := False;
+        FGoComics.NextComicUrl := '';
+        FGoComics.NextComicDate := 0;
+
+        // Try to reload the previous comic
+        try
+          LoadComic(FCurrentComic, FCurrentDate);
+          UpdateNavigationUrls;
+          UpdateButtonStates;
+        except
+          // If even this fails, at least we've notified the user
+        end;
+      end;
     end;
   finally
     Self.Enabled := True;

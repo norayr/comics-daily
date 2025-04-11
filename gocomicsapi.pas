@@ -41,6 +41,7 @@ type
     function ExtractUrlDate(const Url: string): string;
     function TryExtractDateFromUrl(const UrlDatePart: string; out ComicDate: TDateTime): Boolean;
   public
+
     constructor Create(const AEndpoint: string);
     destructor Destroy; override;
     function GetImageUrl(const ADate: TDateTime; out FileName: string; out ContentType: string): TMemoryStream;
@@ -52,7 +53,7 @@ type
     property FirstComicUrl: string read FFirstComicUrl write FFirstComicUrl;
     property LastComicUrl: string read FLastComicUrl write FLastComicUrl;
     property PrevComicDate: TDateTime read FPrevComicDate;
-    property NextComicDate: TDateTime read FNextComicDate;
+    property NextComicDate: TDateTime read FNextComicDate write FNextComicDate;
     property FirstComicDate: TDateTime read FFirstComicDate;
     property LastComicDate: TDateTime read FLastComicDate;
   end;
@@ -365,30 +366,30 @@ begin
   FNextComicDate := 0;
 
   try
-    // Check if page is subscription-blocked and exit early if so
-    if IsSubscriptionBlockedPage(Html) then
-      Exit;
-
     // PREVIOUS button extraction
     PrevStart := Pos('Controls_controls__button_previous__', Html);
     if PrevStart > 0 then
     begin
+      // Check if disabled
       DisabledCheck := PosEx('aria-disabled="true"', Html, PrevStart);
       if (DisabledCheck = 0) or (DisabledCheck > PosEx('>', Html, PrevStart)) then
       begin
+        // Find href link
         LinkStart := PosEx('href="', Html, PrevStart);
         if LinkStart > 0 then
         begin
-          LinkStart := LinkStart + 6;
+          LinkStart := LinkStart + 6; // Length of 'href="'
           LinkEnd := PosEx('"', Html, LinkStart);
           if LinkEnd > 0 then
           begin
             NavUrl := Copy(Html, LinkStart, LinkEnd - LinkStart);
+            // Add base URL if it's a relative path
             if NavUrl.StartsWith('/') then
               FPrevComicUrl := BASE_URL + NavUrl
             else
               FPrevComicUrl := NavUrl;
 
+            // Extract date from URL
             UrlSection := ExtractUrlDate(FPrevComicUrl);
             if TryExtractDateFromUrl(UrlSection, FPrevComicDate) then
               WriteLn('Previous comic date extracted: ' + DateToStr(FPrevComicDate));
@@ -401,52 +402,73 @@ begin
     NextStart := Pos('Controls_controls__button_next__', Html);
     if NextStart > 0 then
     begin
+      // Check if disabled
       DisabledCheck := PosEx('aria-disabled="true"', Html, NextStart);
       if (DisabledCheck = 0) or (DisabledCheck > PosEx('>', Html, NextStart)) then
       begin
+        // Find href link
         LinkStart := PosEx('href="', Html, NextStart);
         if LinkStart > 0 then
         begin
-          LinkStart := LinkStart + 6;
+          LinkStart := LinkStart + 6; // Length of 'href="'
           LinkEnd := PosEx('"', Html, LinkStart);
           if LinkEnd > 0 then
           begin
             NavUrl := Copy(Html, LinkStart, LinkEnd - LinkStart);
+            // Add base URL if it's a relative path
             if NavUrl.StartsWith('/') then
               FNextComicUrl := BASE_URL + NavUrl
             else
               FNextComicUrl := NavUrl;
 
+            // Extract date from URL
             UrlSection := ExtractUrlDate(FNextComicUrl);
             if TryExtractDateFromUrl(UrlSection, FNextComicDate) then
+            begin
               WriteLn('Next comic date extracted: ' + DateToStr(FNextComicDate));
+
+              // IMPORTANT: Validate that next date is not in the future
+              if FNextComicDate > Date() then
+              begin
+                WriteLn('Warning: Next comic date is in the future, ignoring');
+                FNextComicUrl := '';
+                FNextComicDate := 0;
+              end;
+            end
+            else
+            begin
+              // Invalid date in URL - clear it
+              FNextComicUrl := '';
+              FNextComicDate := 0;
+            end;
           end;
         end;
       end;
     end;
 
-    // Validate URLs
-    if (FPrevComicUrl <> '') and (not FPrevComicUrl.StartsWith('http')) then
-      FPrevComicUrl := '';
-    if (FNextComicUrl <> '') and (not FNextComicUrl.StartsWith('http')) then
-      FNextComicUrl := '';
-
-    // Debug logging
-    if FPrevComicUrl <> '' then
-      WriteLn('Extracted previous URL: ' + FPrevComicUrl);
-    if FNextComicUrl <> '' then
-      WriteLn('Extracted next URL: ' + FNextComicUrl);
-
+    // Additional validation for next URL
+    if (FNextComicUrl <> '') and (FNextComicDate > 0) then
+    begin
+      // Check if this URL points to a valid comic by comparing with current date
+      if FNextComicDate > Date() then
+      begin
+        WriteLn('Next comic date is beyond today, clearing URL');
+        FNextComicUrl := '';
+        FNextComicDate := 0;
+      end;
+    end;
   except
     on E: Exception do
     begin
       WriteLn('Error extracting navigation URLs: ' + E.Message);
+      // Ensure URLs are cleared if extraction fails
       FPrevComicUrl := '';
       FNextComicUrl := '';
+      FPrevComicDate := 0;
+      FNextComicDate := 0;
     end;
   end;
 end;
-
 
 function TGoComics.GetStartDate: TDateTime;
 begin
@@ -482,56 +504,143 @@ function TGoComics.GetImageUrl(const ADate: TDateTime; out FileName: string; out
 var
   URL, formattedDate, ComicImg: string;
   Response: TStringStream;
+  TempClient: TFPHTTPClient;
+  RetryCount: Integer;
+  Success: Boolean;
+  IsLatestComic: Boolean;
 begin
+    if ADate > Date() then
+    raise EInvalidDateError.Create('Cannot load comics for future dates');
   formattedDate := FormatDate(ADate);
   URL := Format('%s/%s/%s', [BASE_URL, FEndpoint, formattedDate]);
   Response := TStringStream.Create('');
   Result := TMemoryStream.Create;
+  TempClient := nil;
+  IsLatestComic := False;
+
   try
     try
-      // Make sure we have a valid client
-      if not Assigned(HTTPClient) then
-        HTTPClient := TFPHTTPClient.Create(nil);
+      // Check if this might be the latest comic
+      if CompareDate(ADate, Date()) >= 0 then
+      begin
+        WriteLn('Potential latest comic date detected');
+        IsLatestComic := True;
+      end;
 
-      HTTPClient.AllowRedirect := True;
+      // Create a fresh HTTP client for this request
+      TempClient := TFPHTTPClient.Create(nil);
+      TempClient.AllowRedirect := True;
+      TempClient.AddHeader('User-Agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36');
 
-      // Add logging or debugging information before the request
       WriteLn('Requesting URL: ' + URL);
 
-      HTTPClient.Get(URL, Response); // Get the HTML page
+      // Implement retry logic
+      RetryCount := 0;
+      Success := False;
 
-      // Add validation for the response
-      if Response.Size = 0 then
-        raise Exception.Create('Empty response received');
+      while (not Success) and (RetryCount < 3) do
+      begin
+        try
+          TempClient.Get(URL, Response);
 
-      ComicImg := ExtractImageUrlFromHtml(Response.DataString); // Extract the image URL from HTML
+          if TempClient.ResponseStatusCode >= 400 then
+          begin
+            // If we're trying to access a date that doesn't exist yet
+            if IsLatestComic and (TempClient.ResponseStatusCode = 404) then
+            begin
+              WriteLn('Comic not available for this date (404). Likely beyond latest comic.');
+              FNextComicUrl := ''; // Clear next URL as we're at the latest
+              FNextComicDate := 0;
+              raise Exception.Create('No comic available for this date');
+            end
+            else
+              raise Exception.CreateFmt('HTTP error: %d', [TempClient.ResponseStatusCode]);
+          end
+          else
+            Success := True;
 
+        except
+          on E: Exception do
+          begin
+            Inc(RetryCount);
+            WriteLn(Format('Request failed (attempt %d/3): %s', [RetryCount, E.Message]));
+
+            if RetryCount >= 3 then
+              raise;
+
+            Sleep(1000);
+          end;
+        end;
+      end;
+
+      // Process the HTML
+      ComicImg := ExtractImageUrlFromHtml(Response.DataString);
       if ComicImg = '' then
-        raise Exception.Create('Comic image URL not found in the HTML response.');
+        raise Exception.Create('Comic image URL not found');
 
-      ExtractNavigationUrlsFromHtml(Response.DataString); // Extract navigation URLs
+      // Extract navigation URLs
+      ExtractNavigationUrlsFromHtml(Response.DataString);
 
-      // Add validation before downloading the image
-      if ComicImg = '' then
-        raise Exception.Create('Empty comic image URL');
+      // Special handling for latest comic - ensure next is disabled
+      if IsLatestComic then
+      begin
+        if FNextComicUrl <> '' then
+          WriteLn('Warning: Next URL found for potential latest comic: ' + FNextComicUrl);
 
-      // Download the comic image
-      WriteLn('Downloading image from: ' + ComicImg);
-      HTTPClient.Get(ComicImg, Result); // Get the image directly into the stream
+        // Double check if this really is the latest
+        if CompareDate(ADate, Date()) >= 0 then
+        begin
+          WriteLn('Confirmed latest comic, clearing next URL');
+          FNextComicUrl := '';
+          FNextComicDate := 0;
+        end;
+      end;
+
+      // Download the image
+      Result.Clear();
       Result.Position := 0;
-      ContentType := HTTPClient.ResponseHeaders.Values['Content-Type']; // Extract content type
-      FileName := ExtractFileName(ComicImg); // Use the extracted file name
+
+      RetryCount := 0;
+      Success := False;
+
+      while (not Success) and (RetryCount < 3) do
+      begin
+        try
+          WriteLn('Downloading image from: ' + ComicImg);
+          TempClient.Get(ComicImg, Result);
+          Success := True;
+        except
+          on E: Exception do
+          begin
+            Inc(RetryCount);
+            WriteLn(Format('Image download failed (attempt %d/3): %s', [RetryCount, E.Message]));
+
+            if RetryCount >= 3 then
+              raise;
+
+            Result.Clear();
+            Result.Position := 0;
+            Sleep(1000);
+          end;
+        end;
+      end;
+
+      Result.Position := 0;
+      ContentType := TempClient.ResponseHeaders.Values['Content-Type'];
+      FileName := ExtractFileName(ComicImg);
+
     except
       on E: Exception do
       begin
         WriteLn('Error in GetImageUrl: ' + E.Message);
-        // Make sure we free the result stream in case of error
         FreeAndNil(Result);
-        raise; // Re-raise the exception after cleanup
+        raise;
       end;
     end;
   finally
     Response.Free;
+    if Assigned(TempClient) then
+      TempClient.Free;
   end;
 end;
 
@@ -539,15 +648,48 @@ function TGoComics.GetLatestComicUrl: string;
 var
   URL, ResponseStr: string;
   Response: TStringStream;
+  TempClient: TFPHTTPClient;
 begin
+  Result := '';
   URL := Format('%s/%s', [BASE_URL, FEndpoint]);
   Response := TStringStream.Create('');
+  TempClient := TFPHTTPClient.Create(nil);
+
   try
-    HTTPClient.Get(URL, Response);
-    ResponseStr := Response.DataString;
-    Result := ExtractLatestComicUrlFromHtml(ResponseStr);
+    try
+      TempClient.AllowRedirect := True;
+      TempClient.AddHeader('User-Agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36');
+
+      WriteLn('Getting latest comic from: ' + URL);
+      TempClient.Get(URL, Response);
+
+      if TempClient.ResponseStatusCode >= 400 then
+        raise Exception.CreateFmt('HTTP error: %d', [TempClient.ResponseStatusCode]);
+
+      ResponseStr := Response.DataString;
+
+      // Try to extract the latest comic URL
+      Result := ExtractLatestComicUrlFromHtml(ResponseStr);
+
+      // If we couldn't extract it, fall back to today's date
+      if Result = '' then
+      begin
+        WriteLn('Could not extract latest comic URL, falling back to today''s date');
+        Result := Format('%s/%s/%s', [BASE_URL, FEndpoint, FormatDate(Date())]);
+      end;
+
+      WriteLn('Latest comic URL: ' + Result);
+    except
+      on E: Exception do
+      begin
+        WriteLn('Error getting latest comic: ' + E.Message);
+        // Fall back to today's date
+        Result := Format('%s/%s/%s', [BASE_URL, FEndpoint, FormatDate(Date())]);
+      end;
+    end;
   finally
     Response.Free;
+    TempClient.Free;
   end;
 end;
 
