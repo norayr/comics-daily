@@ -73,7 +73,7 @@ type
     procedure ResizeImage;
     function GetComicsDailyDir: string;
     function GetFileExtension(const ContentType: string): string;
-    procedure LoadComic(const Comic: string; const ComicDate: TDateTime);
+    procedure LoadComic(const ComicName: string; const ComicDate: TDateTime);
     procedure LoadLatestComic(const Comic: string);
     procedure UpdateButtonStates;
     procedure UpdateLayout;
@@ -93,7 +93,7 @@ var
   Form1: TForm1;
 
 implementation
-
+    uses dateutils; //for incday
 {$R *.lfm}
 
 { TForm1 }
@@ -258,13 +258,17 @@ end;
 
 procedure TForm1.UpdateNavigationUrls;
 begin
-  FPrevComicUrl := FGoComics.PrevComicUrl;
-  FNextComicUrl := FGoComics.NextComicUrl;
-  FFirstComicUrl := FGoComics.FirstComicUrl;
-  FLastComicUrl := FGoComics.LastComicUrl;
-
-  // Show the navigation URLs for debugging purposes
-  //ShowMessage('Prev: ' + FPrevComicUrl + ' Next: ' + FNextComicUrl + ' First: ' + FFirstComicUrl + ' Last: ' + FLastComicUrl);
+  WriteLn('---------------------------------------');
+  WriteLn('Current comic: ' + FCurrentComic);
+  WriteLn('Current date: ' + DateToStr(FCurrentDate));
+  WriteLn('Previous URL: ' + FGoComics.PrevComicUrl);
+  WriteLn('Next URL: ' + FGoComics.NextComicUrl);
+  WriteLn('Previous date: ' + DateToStr(FGoComics.PrevComicDate));
+  if FGoComics.NextComicDate > 0 then
+    WriteLn('Next date: ' + DateToStr(FGoComics.NextComicDate))
+  else
+    WriteLn('Next date: not set');
+  WriteLn('---------------------------------------');
 end;
 
 procedure TForm1.ComboBox1Change(Sender: TObject);
@@ -385,62 +389,40 @@ begin
 end;
 
 procedure TForm1.NextButtonClick(Sender: TObject);
-var
-   OldDate: TDateTime;
 begin
   Self.Enabled := False;
   try
-    // Additional validation before attempting to navigate
-    if (FGoComics.NextComicUrl = '') then
+    WriteLn('Next button clicked');
+    WriteLn('Current URL: ' + Format('%s/%s/%s', [BASE_URL, FCurrentComic, FormatDateTime('yyyy/mm/dd', FCurrentDate)]));
+    WriteLn('Next URL available: ' + BoolToStr(FGoComics.NextComicUrl <> '', True));
+
+    // Less restrictive check - only ensure there is a next URL
+    if FGoComics.NextComicUrl <> '' then
     begin
-      ShowMessage('You have reached the latest comic.');
-      NextButton.Enabled := False;
-      Exit;
-    end;
+      // Use the extracted next date if available
+      if FGoComics.NextComicDate > 0 then
+        FCurrentDate := FGoComics.NextComicDate
+      else
+        // Increment by one day as fallback
+        FCurrentDate := IncDay(FCurrentDate, 1);
 
-    // Validate that the next date isn't in the future
-    if (FGoComics.NextComicDate > Date()) then
-    begin
-      ShowMessage('You have reached the latest comic.');
-      NextButton.Enabled := False;
-      FGoComics.NextComicUrl := ''; // Clear bad URL
-      FGoComics.NextComicDate := 0;
-      Exit;
-    end;
-
-    // Store current state for potential rollback
-    OldDate := FCurrentDate;
-
-    try
-      // Set the new date
-      FCurrentDate := FGoComics.NextComicDate;
-
-      // Try to load the comic
-      LoadComic(FCurrentComic, FCurrentDate);
-      UpdateNavigationUrls;
-      UpdateButtonStates;
-    except
-      on E: Exception do
-      begin
-        ShowMessage('Error loading next comic: ' + E.Message);
-
-        // Revert to previous date
-        FCurrentDate := OldDate;
-
-        // Disable the Next button to prevent further attempts
-        NextButton.Enabled := False;
-        FGoComics.NextComicUrl := '';
-        FGoComics.NextComicDate := 0;
-
-        // Try to reload the previous comic
-        try
-          LoadComic(FCurrentComic, FCurrentDate);
-          UpdateNavigationUrls;
-          UpdateButtonStates;
-        except
-          // If even this fails, at least we've notified the user
+      try
+        LoadComic(FCurrentComic, FCurrentDate);
+        UpdateNavigationUrls;
+        UpdateButtonStates;
+      except
+        on E: Exception do
+        begin
+          ShowMessage('Error loading next comic: ' + E.Message);
+          // If we can't load the comic, disable the next button
+          NextButton.Enabled := False;
         end;
       end;
+    end
+    else
+    begin
+      ShowMessage('You have reached the latest comic.');
+      NextButton.Enabled := False;
     end;
   finally
     Self.Enabled := True;
@@ -486,112 +468,61 @@ begin
     // GoComics object is managed globally now, no need to free here
   end;
 end;
-{
-procedure TForm1.LoadComic(const Comic: string; const ComicDate: TDateTime);
-var
-  attemptDate: TDateTime;
-  tmpStream: TMemoryStream;
-  i, maxRetries: Integer;
-begin
-  if Comic = '' then
-  begin
-    Memo1.Lines.Add('No comic selected.');
-    Exit;
-  end;
-  // **Set window caption after we know the actual loaded date (no initial mismatch)**
-  Memo1.Lines.Add('Fetching comic for ' + Comic + ' on ' + DateToStr(ComicDate) + '...');
-  try
-    FreeAndNil(FComicStream);  // free previous image stream if any
-    attemptDate := ComicDate;
-    maxRetries := 5;  // allow up to 5 fallback days to handle skip days
-    for i := 0 to maxRetries do
-    begin
-      try
-        // Try to load the comic for the current attempt date
-        tmpStream := FGoComics.GetImageUrl(attemptDate, FFileName, FContentType);
-        FComicStream := tmpStream;
-        FCurrentDate := attemptDate;
-        Break;  // success: exit the retry loop
-      except
-        on E: Exception do
-        begin
-          Memo1.Lines.Add('Error fetching comic for ' + DateToStr(attemptDate) + ': ' + E.Message);
-          if i = maxRetries then
-            raise  // no more retries, propagate the exception to outer handler
-          else
-          begin
-            // Fallback: try the previous day
-            attemptDate := attemptDate - 1;
-            Memo1.Lines.Add('Retrying with previous day''s comic...');
-            continue;
-          end;
-        end;
-      end;
-    end;
-    // If we reach here, FComicStream contains a valid image from `attemptDate` (stored in FCurrentDate)
-    Memo1.Lines.Add('Content Type: ' + FContentType);
-    if Pos('text/html', FContentType) > 0 then
-      raise Exception.Create('Received HTML instead of image. Please check the image URL.');
-    // Load and display the image from the stream
-    LoadImageFromStream(FComicStream, FContentType);
-    // **Update the form caption to the actual date of the loaded comic**
-    Form1.Caption := Comic + ' ' + DateToStr(FCurrentDate);
-    Memo1.Lines.Add('Comic displayed successfully for ' + DateToStr(FCurrentDate));
-    SaveComicButton.Enabled := True;
-  except
-    on E: Exception do
-    begin
-      // If we get here, no comic was loaded (even after retries)
-      Memo1.Lines.Add('Error: ' + E.Message);
-      Exit;  // abort updating navigation if loading failed
-    end;
-  end;
-  // **Update navigation URLs based on the successfully loaded page, and refresh button states**
-  UpdateNavigationUrls;
-  UpdateButtonStates;
-end;
-}
 
-procedure TForm1.LoadComic(const Comic: string; const ComicDate: TDateTime);
+procedure TForm1.LoadComic(const ComicName: string; const ComicDate: TDateTime);
 var
   attemptDate: TDateTime;
   tmpStream: TMemoryStream;
   i, maxRetries: Integer;
+  ContentType, FileName: string;
 begin
-  if Comic = '' then
+  if ComicName = '' then
     Exit;
 
   attemptDate := ComicDate;
-  maxRetries := 5;  // maximum fallback days
+  maxRetries := 5;
+
   for i := 0 to maxRetries do
   begin
     try
-      tmpStream := FGoComics.GetImageUrl(attemptDate, FFileName, FContentType);
-      FreeAndNil(FComicStream);
-      FComicStream := tmpStream;
-      FCurrentDate := attemptDate; // actual date loaded (might be fallback)
+      WriteLn('Trying to load comic for date: ' + DateToStr(attemptDate));
 
-      if Pos('text/html', FContentType) > 0 then
+      tmpStream := FGoComics.GetImageUrl(attemptDate, FileName, ContentType);
+
+      if Pos('text/html', ContentType) > 0 then
         raise Exception.Create('Received HTML instead of image.');
 
-      LoadImageFromStream(FComicStream, FContentType);
-      Form1.Caption := Comic + ' ' + DateToStr(FCurrentDate);
+      FreeAndNil(FComicStream);
+      FComicStream := tmpStream;
+      FCurrentDate := attemptDate;
+      FContentType := ContentType;
+      FFileName := FileName;
 
-      // Now that we've successfully loaded the comic, update URLs
+      LoadImageFromStream(FComicStream, FContentType);
+      Caption := ComicName + ' ' + DateToStr(FCurrentDate);
+      //StatusBar1.SimpleText := Format('%s - %s', [ComicName, DateToStr(FCurrentDate)]);
+
+      // Update navigation
       UpdateNavigationUrls;
       UpdateButtonStates;
 
-      Exit; // successful load, exit loop immediately
+      WriteLn('After loading comic:');
+      WriteLn('Previous URL: ' + FGoComics.PrevComicUrl);
+      WriteLn('Next URL: ' + FGoComics.NextComicUrl);
+
+      Exit; // success
     except
-      attemptDate := attemptDate - 1; // fallback to previous day
-      Continue; // try next day
+      on E: Exception do
+      begin
+        WriteLn('Failed to load comic for date ' + DateToStr(attemptDate) + ': ' + E.Message);
+        attemptDate := attemptDate - 1;
+        Continue;
+      end;
     end;
   end;
 
-  // If here, no comic loaded after retries
   ShowMessage('Unable to load comic after several attempts.');
 end;
-
 
 procedure TForm1.SaveComicButtonClick(Sender: TObject);
 var
@@ -901,38 +832,21 @@ begin
 end;
 
 procedure TForm1.UpdateButtonStates;
-var
-  HasValidNext: Boolean;
 begin
-//  PrevButton.Enabled := (FGoComics.PrevComicUrl <> '') and (FGoComics.PrevComicDate > 0);
-//  NextButton.Enabled := (FGoComics.NextComicUrl <> '') and (FGoComics.NextComicDate > 0) and (FGoComics.NextComicDate <= Now);
+  // Enable Prev button if there's a previous comic URL
+  PrevButton.Enabled := (FGoComics.PrevComicUrl <> '');
 
-  PrevButton.Enabled := FGoComics.PrevComicUrl <> '';
-  NextButton.Enabled := FGoComics.NextComicUrl <> '';
+  // Enable Next button if:
+  // 1. There's a next comic URL AND
+  // 2. The current date is before or equal to today
+  NextButton.Enabled := (FGoComics.NextComicUrl <> '') and
+                       (FCurrentDate < Date());
 
-//  firstButton.Enabled := PrevButton.Enabled;
-//  lastButton.Enabled  := NextButton.Enabled;
-
-
-
-//  zoomIn.Enabled  := PrevButton.Enabled or NextButton.Enabled;
-//  zoomOut.Enabled := PrevButton.Enabled or NextButton.Enabled;
-  //firstButton.Enabled := FCurrentDate <> FGoComics.FirstComicDate;
-  firstButton.Enabled := PrevButton.Enabled;
-  lastButton.Enabled := NextButton.Enabled;
-
-
-  zoomIn.Enabled := PrevButton.Enabled or NextButton.Enabled;
-  zoomOut.Enabled := PrevButton.Enabled or NextButton.Enabled;
-  {if NextButton.Enabled = False then
-  begin
-    lastButton.Enabled := False
-  end
- else
-  begin
-  lastButton.Enabled := FCurrentDate <> FGoComics.LastComicDate
-  end;
-  }
+  // Log button states for debugging
+  WriteLn(Format('Button states - Prev: %s, Next: %s',
+          [BoolToStr(PrevButton.Enabled, True), BoolToStr(NextButton.Enabled, True)]));
+  WriteLn(Format('URLs - Prev: %s, Next: %s',
+          [FGoComics.PrevComicUrl, FGoComics.NextComicUrl]));
 end;
 
 procedure TForm1.UpdateLayout;

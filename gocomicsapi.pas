@@ -359,7 +359,7 @@ var
   PrevStart, NextStart, LinkStart, LinkEnd, DisabledCheck: Integer;
   NavUrl, UrlSection: string;
 begin
-  // Initialize URLs to empty
+  // Initialize URLs
   FPrevComicUrl := '';
   FNextComicUrl := '';
   FPrevComicDate := 0;
@@ -368,6 +368,9 @@ begin
   try
     // PREVIOUS button extraction
     PrevStart := Pos('Controls_controls__button_previous__', Html);
+    if PrevStart <= 0 then
+      PrevStart := Pos('class="btn gc-jumble-controls--btn--prev"', Html); // Try alternate class
+
     if PrevStart > 0 then
     begin
       // Check if disabled
@@ -389,6 +392,8 @@ begin
             else
               FPrevComicUrl := NavUrl;
 
+            WriteLn('Found previous URL: ' + FPrevComicUrl);
+
             // Extract date from URL
             UrlSection := ExtractUrlDate(FPrevComicUrl);
             if TryExtractDateFromUrl(UrlSection, FPrevComicDate) then
@@ -398,8 +403,11 @@ begin
       end;
     end;
 
-    // NEXT button extraction
+    // NEXT button extraction - try multiple possible class names
     NextStart := Pos('Controls_controls__button_next__', Html);
+    if NextStart <= 0 then
+      NextStart := Pos('class="btn gc-jumble-controls--btn--next"', Html); // Try alternate class
+
     if NextStart > 0 then
     begin
       // Check if disabled
@@ -421,16 +429,18 @@ begin
             else
               FNextComicUrl := NavUrl;
 
+            WriteLn('Found next URL: ' + FNextComicUrl);
+
             // Extract date from URL
             UrlSection := ExtractUrlDate(FNextComicUrl);
             if TryExtractDateFromUrl(UrlSection, FNextComicDate) then
             begin
               WriteLn('Next comic date extracted: ' + DateToStr(FNextComicDate));
 
-              // IMPORTANT: Validate that next date is not in the future
-              if FNextComicDate > Date() then
+              // Only validate future dates - don't clear valid next URLs
+              if FNextComicDate > (Date() + 1) then // Allow for tomorrow in case of timezone differences
               begin
-                WriteLn('Warning: Next comic date is in the future, ignoring');
+                WriteLn('Warning: Next comic date is too far in the future, ignoring');
                 FNextComicUrl := '';
                 FNextComicDate := 0;
               end;
@@ -438,34 +448,34 @@ begin
             else
             begin
               // Invalid date in URL - clear it
+              WriteLn('Could not extract date from next URL, clearing');
               FNextComicUrl := '';
               FNextComicDate := 0;
             end;
           end;
         end;
+      end
+      else
+      begin
+        WriteLn('Next button is disabled in HTML');
       end;
+    end
+    else
+    begin
+      WriteLn('Could not find next button element in HTML');
     end;
 
-    // Additional validation for next URL
-    if (FNextComicUrl <> '') and (FNextComicDate > 0) then
-    begin
-      // Check if this URL points to a valid comic by comparing with current date
-      if FNextComicDate > Date() then
-      begin
-        WriteLn('Next comic date is beyond today, clearing URL');
-        FNextComicUrl := '';
-        FNextComicDate := 0;
-      end;
-    end;
+    // Ensure we're only validating properly, not over-restricting
+    if FNextComicDate > 0 then
+      WriteLn('Final next comic date: ' + DateToStr(FNextComicDate));
+
+    if FPrevComicDate > 0 then
+      WriteLn('Final previous comic date: ' + DateToStr(FPrevComicDate));
   except
     on E: Exception do
     begin
       WriteLn('Error extracting navigation URLs: ' + E.Message);
-      // Ensure URLs are cleared if extraction fails
-      FPrevComicUrl := '';
-      FNextComicUrl := '';
-      FPrevComicDate := 0;
-      FNextComicDate := 0;
+      // Don't clear URLs on error - this can break navigation
     end;
   end;
 end;
