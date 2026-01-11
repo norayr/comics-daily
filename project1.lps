@@ -18,9 +18,8 @@
         <HasResources Value="True"/>
         <ResourceBaseClass Value="Form"/>
         <UnitName Value="Unit1"/>
-        <IsVisibleTab Value="True"/>
-        <TopLine Value="485"/>
-        <CursorPos X="9" Y="503"/>
+        <TopLine Value="814"/>
+        <CursorPos X="57" Y="844"/>
         <UsageCount Value="253"/>
         <Loaded Value="True"/>
       </Unit>
@@ -28,9 +27,10 @@
         <Filename Value="gocomicsapi.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="GoComicsAPI"/>
+        <IsVisibleTab Value="True"/>
         <EditorIndex Value="2"/>
-        <TopLine Value="443"/>
-        <CursorPos Y="482"/>
+        <TopLine Value="341"/>
+        <CursorPos X="17" Y="359"/>
         <UsageCount Value="253"/>
         <Loaded Value="True"/>
       </Unit>
@@ -38,7 +38,7 @@
         <Filename Value="x11rotation.pas"/>
         <EditorIndex Value="-1"/>
         <CursorPos X="31" Y="8"/>
-        <UsageCount Value="34"/>
+        <UsageCount Value="33"/>
       </Unit>
       <Unit>
         <Filename Value="/usr/lib/fpc/3.2.2/source/packages/x11/src/x.pp"/>
@@ -48,15 +48,7 @@
         <Loaded Value="True"/>
       </Unit>
     </Units>
-    <JumpHistory HistoryIndex="29">
-      <Position>
-        <Filename Value="gocomicsapi.pas"/>
-        <Caret Line="356" TopLine="350"/>
-      </Position>
-      <Position>
-        <Filename Value="gocomicsapi.pas"/>
-        <Caret Line="537" TopLine="498"/>
-      </Position>
+    <JumpHistory HistoryIndex="28">
       <Position>
         <Filename Value="gocomicsapi.pas"/>
         <Caret Line="39" Column="44" TopLine="19"/>
@@ -168,6 +160,10 @@
       <Position>
         <Filename Value="unit1.pas"/>
         <Caret Line="76" Column="40" TopLine="57"/>
+      </Position>
+      <Position>
+        <Filename Value="unit1.pas"/>
+        <Caret Line="496" Column="23" TopLine="482"/>
       </Position>
     </JumpHistory>
     <RunParams>
