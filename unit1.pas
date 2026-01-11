@@ -45,6 +45,7 @@ type
     procedure zoomOutClick(Sender: TObject);
     procedure ZoomImage(ZoomFactor: Double);
     procedure ResetAndReloadComic;
+    procedure FitAndCenter;
   private
     FPrevClientWidth, FPrevClientHeight: Integer;
     FWinPropertySet: boolean;
@@ -201,6 +202,18 @@ begin
   // Rotation is handled by Hildon atom set in FormActivate
 end;
 
+procedure TForm1.FitAndCenter;
+begin
+  // Force recompute best-fit scale on next ResizeImage
+  FScaleFactor := 1.0;
+
+  // Force centering logic to run
+  FOffsetX := 0;
+  FOffsetY := 0;
+
+  ResizeImage;
+end;
+
 procedure TForm1.FormClose(Sender: TObject; var CloseAction: TCloseAction);
 begin
   FreeAndNil(FCachedBitmap);
@@ -219,7 +232,8 @@ begin
   UpdateLayout;
 
   if Assigned(FCachedBitmap) then
-    LoadCachedImage;
+    //LoadCachedImage;
+    FitAndCenter
 end;
 
 procedure TForm1.ResetAndReloadComic;
@@ -252,10 +266,10 @@ begin
     WriteLn('ERROR: Stream is empty');
     raise Exception.Create('Image stream is empty');
   end;
-  
+
   WriteLn('LoadImageFromStream - Size: ', Stream.Size, ', ContentType: ', ContentType);
   Stream.Position := 0;
-  
+
   try
     WriteLn('Creating TPicture...');
     Picture := TPicture.Create;
@@ -263,28 +277,29 @@ begin
       WriteLn('Loading from stream...');
       Picture.LoadFromStream(Stream);
       WriteLn('Picture loaded: ', Picture.Width, 'x', Picture.Height);
-      
+
       // Create or update cached bitmap
       if not Assigned(FCachedBitmap) then
       begin
         WriteLn('Creating new FCachedBitmap');
         FCachedBitmap := TBitmap.Create;
       end;
-      
+
       WriteLn('Setting bitmap size: ', Picture.Width, 'x', Picture.Height);
       FCachedBitmap.Width := Picture.Width;
       FCachedBitmap.Height := Picture.Height;
-      
+
       WriteLn('Drawing picture to bitmap...');
       FCachedBitmap.Canvas.Draw(0, 0, Picture.Graphic);
       WriteLn('Bitmap created successfully');
-      
-      ResizeImage;
-      
+
+      //ResizeImage;
+      FitAndCenter;
+
       zoomIn.Enabled := True;
       zoomOut.Enabled := True;
       SaveComicButton.Enabled := True;
-      
+
       WriteLn('Image display complete');
     finally
       Picture.Free;
@@ -314,40 +329,54 @@ begin
 
   TargetWidth := Image1.Width;
   TargetHeight := Image1.Height;
-  
-  // If scale factor is 1.0 (initial load), calculate best fit
+
+  if (OriginalWidth <= 0) or (OriginalHeight <= 0) or (TargetWidth <= 0) or (TargetHeight <= 0) then
+    Exit;
+
+  // Always compute best-fit scale
+  ScaleX := TargetWidth / OriginalWidth;
+  ScaleY := TargetHeight / OriginalHeight;
+
+  //if ScaleX < ScaleY then
+  //  BestScale := ScaleX
+  //else
+  //  BestScale := ScaleY;
+
+  if not FIsPortrait then
+    BestScale := ScaleX             // landscape: fit width
+  else
+    BestScale := Min(ScaleX, ScaleY); // portrait: fit whole page
+
+
+  // Do not upscale beyond original size
+  if BestScale > 2.0 then
+    BestScale := 2.0;
+  // or maybe try
+  // if (BestScale > 1.0) and FIsPortrait then BestScale := 1.0;
+
+
+  // If scale factor is 1.0 (initial load / "auto-fit requested"), apply best fit
   if FScaleFactor = 1.0 then
   begin
-    // Calculate scale factors for both dimensions
-    ScaleX := TargetWidth / OriginalWidth;
-    ScaleY := TargetHeight / OriginalHeight;
-    
-    // Use the smaller scale to fit within bounds
-    if ScaleX < ScaleY then
-      BestScale := ScaleX
-    else
-      BestScale := ScaleY;
-    
-    // Don't upscale beyond original size
-    if BestScale > 1.0 then
-      BestScale := 1.0;
-    
     FScaleFactor := BestScale;
-    WriteLn('Auto-fit scale: ', FScaleFactor:0:3, ' (original: ', OriginalWidth, 'x', OriginalHeight, 
+    WriteLn('Auto-fit scale: ', FScaleFactor:0:3,
+            ' (original: ', OriginalWidth, 'x', OriginalHeight,
             ', target: ', TargetWidth, 'x', TargetHeight, ')');
   end;
 
   ScaledWidth := Round(OriginalWidth * FScaleFactor);
   ScaledHeight := Round(OriginalHeight * FScaleFactor);
-  
-  // Center the image if it's smaller than target
-  if (FOffsetX = 0) and (FOffsetY = 0) then
+
+  // If we are in auto-fit mode (scale == best fit), always re-center
+  if Abs(FScaleFactor - BestScale) < 0.0001 then
   begin
-    if ScaledWidth < TargetWidth then
-      FOffsetX := (TargetWidth - ScaledWidth) div 2;
-    if ScaledHeight < TargetHeight then
-      FOffsetY := (TargetHeight - ScaledHeight) div 2;
+    FOffsetX := (TargetWidth - ScaledWidth) div 2;
+    FOffsetY := (TargetHeight - ScaledHeight) div 2;
   end;
+  WriteLn('Target=', TargetWidth, 'x', TargetHeight,
+        ' Original=', OriginalWidth, 'x', OriginalHeight,
+        ' ScaleX=', ScaleX:0:3, ' ScaleY=', ScaleY:0:3,
+        ' Best=', BestScale:0:3);
 
   TempBitmap := TBitmap.Create;
   try
@@ -422,8 +451,8 @@ begin
   begin
     PrevButton.Enabled := FGoComics.HasPrevious;
     NextButton.Enabled := FGoComics.HasNext;
-    
-    WriteLn('Button states - Prev: ', BoolToStr(PrevButton.Enabled, True), 
+
+    WriteLn('Button states - Prev: ', BoolToStr(PrevButton.Enabled, True),
             ', Next: ', BoolToStr(NextButton.Enabled, True));
   end
   else
@@ -474,6 +503,13 @@ begin
 
   FComic_Section := (ShowComicButton.Top - Margin) / ClientHeight;
   Image1.SetBounds(0, 0, FormWidth, Round(FormHeight * FComic_Section));
+  if Assigned(FCachedBitmap) then
+  begin
+    FScaleFactor := 1.0;
+    FOffsetX := 0;
+    FOffsetY := 0;
+    ResizeImage;
+  end;
   WriteLn(' exiting update layout');
 end;
 
@@ -584,10 +620,10 @@ begin
     begin
       // Load new comic feed
       FCurrentComic := ComboBox1.Text;
-      
+
       FreeAndNil(FGoComics);
       FGoComics := TGoComics.Create(FCurrentComic);
-      
+
       WriteLn('Loading RSS feed for: ', FCurrentComic);
       if FGoComics.LoadFeed then
       begin
@@ -600,7 +636,7 @@ begin
         ShowMessage('Failed to load comic feed. Check console for details.');
         FIsComicLoaded := False;
       end;
-      
+
       UpdateButtonStates;
     end;
   finally
@@ -697,6 +733,10 @@ begin
   begin
     WriteLn('Comic downloaded, loading image...');
     try
+      FScaleFactor := 1.0;
+      FOffsetX := 0;
+      FOffsetY := 0;
+
       LoadImageFromStream(FComicStream, FContentType);
       WriteLn('Comic loaded successfully');
     except
@@ -731,23 +771,23 @@ begin
     Ext := GetFileExtension(FContentType);
     if Ext = '' then
       Ext := '.jpg';  // Default to .jpg
-    
+
     // Create filename with proper extension
     if FFileName <> '' then
       BaseFileName := FFileName
     else
       BaseFileName := FormatDateTime('yyyy-mm-dd', Now);
-    
+
     // Remove any existing extension from filename
     if Pos('.', BaseFileName) > 0 then
       BaseFileName := Copy(BaseFileName, 1, Pos('.', BaseFileName) - 1);
-    
+
     SavePath := SaveDir + PathDelim + FCurrentComic + '_' + BaseFileName + Ext;
-    
+
     WriteLn('Saving comic to: ', SavePath);
     FComicStream.Position := 0;
     FComicStream.SaveToFile(SavePath);
-    
+
     ShowMessage('Comic saved to: ' + SavePath);
   except
     on E: Exception do
