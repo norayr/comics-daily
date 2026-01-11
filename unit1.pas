@@ -163,7 +163,7 @@ begin
   Memo1.Enabled := False;
   Memo1.Visible := False;
 
-  Form1.Caption := 'comics daily (RSS)';
+  Form1.Caption := 'comics daily';
 
   prevButton.Enabled := False;
   nextButton.Enabled := False;
@@ -672,7 +672,7 @@ end;
 
 procedure TForm1.lastButtonClick(Sender: TObject);
 begin
-  // Not used in RSS version
+  // Not used in new version :/
 end;
 
 procedure TForm1.PrevButtonClick(Sender: TObject);
